@@ -128,6 +128,19 @@ LifecycleEventListener {
     }
     
     @ReactMethod
+    public void getHeartRateSamples(double startDate,
+                                    double endDate,
+                                    Callback errorCallback,
+                                    Callback successCallback) {
+        
+        try {
+            successCallback.invoke(mGoogleFitManager.getHeartRateHistory().readByDate((long)startDate, (long)endDate));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
     public void getWeightSamples(double startDate,
                                  double endDate,
                                  Callback errorCallback,

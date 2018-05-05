@@ -48,6 +48,7 @@ public class GoogleFitManager implements
     private Activity mActivity;
 
     private DistanceHistory distanceHistory;
+    private HeartRateHistory heartRateHistory;
     private StepHistory stepHistory;
     private WeightsHistory weightsHistory;
     private CalorieHistory calorieHistory;
@@ -69,6 +70,7 @@ public class GoogleFitManager implements
         this.stepHistory = new StepHistory(mReactContext, this);
         this.weightsHistory = new WeightsHistory(mReactContext, this);
         this.distanceHistory = new DistanceHistory(mReactContext, this);
+        this.heartRateHistory = new HeartRateHistory(mReactContext, this);
         this.calorieHistory = new CalorieHistory(mReactContext, this);
         this.recordingApi = new RecordingApi(mReactContext, this);
         //        this.stepSensor = new StepSensor(mReactContext, activity);
@@ -96,6 +98,10 @@ public class GoogleFitManager implements
 
     public DistanceHistory getDistanceHistory() {
         return distanceHistory;
+    }
+
+    public HeartRateHistory getHeartRateHistory() {
+        return heartRateHistory;
     }
 
     public void resetAuthInProgress()
