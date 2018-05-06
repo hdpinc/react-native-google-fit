@@ -111,7 +111,7 @@ public class BodyFatPercentageHistory {
                 bodyFatPercentageMap.putString("day", day);
                 bodyFatPercentageMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
                 bodyFatPercentageMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
-                bodyFatPercentageMap.putDouble("bodyFatPercentage", dp.getValue(field).asFloat());
+                bodyFatPercentageMap.putDouble("value", dp.getValue(field).asFloat());
                 map.pushMap(bodyFatPercentageMap);
             }
         }

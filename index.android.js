@@ -146,7 +146,7 @@ class RNGoogleFit {
         },
         (res) => {
             res = res.map((el) => {
-                if (el.heartRate) {
+                if (el.value) {
                     el.startDate = new Date(el.startDate).toISOString();
                     el.endDate = new Date(el.endDate).toISOString();
                     return el;

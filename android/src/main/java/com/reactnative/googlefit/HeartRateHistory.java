@@ -111,7 +111,7 @@ public class HeartRateHistory {
                 heartRateMap.putString("day", day);
                 heartRateMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
                 heartRateMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
-                heartRateMap.putDouble("heartRate", dp.getValue(field).asFloat());
+                heartRateMap.putDouble("value", dp.getValue(field).asFloat());
                 map.pushMap(heartRateMap);
             }
         }
