@@ -64,17 +64,13 @@ class RNGoogleFit {
         googleFit.getDailyStepCountSamples(startDate, endDate,
             msg => callback(msg, false),
             (res) => {
-              if (res.length>0) {
-                  callback(false, res.map(function(dev) {
-                          let obj = {};
-                          obj.source = dev.source.appPackage + ((dev.source.stream) ? ":" + dev.source.stream : "");
-                          obj.steps = this.buildDailySteps(dev.steps);
-                          return obj;
-                      }, this)
-                  );
-              } else {
-                  callback("There is no any steps data for this period", false);
-              }
+                callback(false, res.map(function(dev) {
+                        let obj = {};
+                        obj.source = dev.source.appPackage + ((dev.source.stream) ? ":" + dev.source.stream : "");
+                        obj.steps = this.buildDailySteps(dev.steps);
+                        return obj;
+                    }, this)
+                );
             }
         );
     }
@@ -149,18 +145,14 @@ class RNGoogleFit {
             callback(msg, false);
         },
         (res) => {
-            if (res.length>0) {
-                res = res.map((el) => {
-                    if (el.heartRate) {
-                        el.startDate = new Date(el.startDate).toISOString();
-                        el.endDate = new Date(el.endDate).toISOString();
-                        return el;
-                    }
-                });
-                callback(false, res.filter(day => day != undefined));
-            } else {
-                callback("There is no any heart rate data for this period", false);
-            }
+            res = res.map((el) => {
+                if (el.heartRate) {
+                    el.startDate = new Date(el.startDate).toISOString();
+                    el.endDate = new Date(el.endDate).toISOString();
+                    return el;
+                }
+            });
+            callback(false, res.filter(day => day != undefined));
         });
     }
 
@@ -179,18 +171,14 @@ class RNGoogleFit {
             callback(msg, false);
         },
         (res) => {
-            if (res.length>0) {
-                res = res.map((el) => {
-                    if (el.bodyFatPercentage) {
-                        el.startDate = new Date(el.startDate).toISOString();
-                        el.endDate = new Date(el.endDate).toISOString();
-                        return el;
-                    }
-                });
-                callback(false, res.filter(day => day != undefined));
-            } else {
-                callback("There is no any body fat percentage data for this period", false);
-            }
+            res = res.map((el) => {
+                if (el.bodyFatPercentage) {
+                    el.startDate = new Date(el.startDate).toISOString();
+                    el.endDate = new Date(el.endDate).toISOString();
+                    return el;
+                }
+            });
+            callback(false, res.filter(day => day != undefined));
         });
     }
 
@@ -242,9 +230,8 @@ class RNGoogleFit {
             callback(msg, false);
         },
         (res) => {
-            if (res.length>0) {
-                res = res.map((el) => {
-                    if (el.value) {
+            res = res.map((el) => {
+                if (el.value) {
                     if (options.unit === 'pound') {
                         el.value = this.KgToLbs(el.value); //convert back to pounds
                     }
@@ -253,10 +240,7 @@ class RNGoogleFit {
                     return el;
                 }
             });
-                callback(false, res.filter(day => day != undefined));
-            } else {
-                callback("There is no any weight data for this period", false);
-            }
+            callback(false, res.filter(day => day != undefined));
         });
     }
 
