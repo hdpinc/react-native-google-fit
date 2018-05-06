@@ -132,7 +132,7 @@ class RNGoogleFit {
     }
 
     /**
-     * Get heart rate samples per day over a specified date range.
+     * Get heart rate samples for a specified date range.
      * @param {Object} options getHeartRateSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
      * @callback callback The function will be called with an array of elements.
      */
@@ -158,7 +158,7 @@ class RNGoogleFit {
 
 
     /**
-     * Get body fat percentage samples over a specified date range.
+     * Get body fat percentage samples for a specified date range.
      * @param {Object} options getBodyFatPercentageSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
      * @callback callback The function will be called with an array of elements.
      */
