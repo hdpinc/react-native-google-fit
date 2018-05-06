@@ -141,6 +141,19 @@ LifecycleEventListener {
     }
 
     @ReactMethod
+    public void getBodyFatPercentageSamples(double startDate,
+                                            double endDate,
+                                            Callback errorCallback,
+                                            Callback successCallback) {
+        
+        try {
+            successCallback.invoke(mGoogleFitManager.getBodyFatPercentageHistory().readByDate((long)startDate, (long)endDate));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
     public void getWeightSamples(double startDate,
                                  double endDate,
                                  Callback errorCallback,

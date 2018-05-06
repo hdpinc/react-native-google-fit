@@ -164,6 +164,36 @@ class RNGoogleFit {
         });
     }
 
+
+    /**
+     * Get body fat percentage samples over a specified date range.
+     * @param {Object} options getBodyFatPercentageSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+     * @callback callback The function will be called with an array of elements.
+     */
+    getBodyFatPercentageSamples(options, callback) {
+        const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
+        const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
+        googleFit.getBodyFatPercentageSamples( startDate,
+            endDate,
+            (msg) => {
+            callback(msg, false);
+        },
+        (res) => {
+            if (res.length>0) {
+                res = res.map((el) => {
+                    if (el.bodyFatPercentage) {
+                        el.startDate = new Date(el.startDate).toISOString();
+                        el.endDate = new Date(el.endDate).toISOString();
+                        return el;
+                    }
+                });
+                callback(false, res.filter(day => day != undefined));
+            } else {
+                callback("There is no any body fat percentage data for this period", false);
+            }
+        });
+    }
+
     /**
      * Get the total calories per day over a specified date range.
      * @param {Object} options getDailyCalorieSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
