@@ -156,6 +156,30 @@ class RNGoogleFit {
         });
     }
 
+    /**
+     * Get sleep samples for a specified date range.
+     * @param {Object} options getHeartRateSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+     * @callback callback The function will be called with an array of elements.
+     */
+    getSleepSamples(options, callback) {
+        const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
+        const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
+        googleFit.getSleepSamples( startDate,
+            endDate,
+            (msg) => {
+            callback(msg, false);
+        },
+        (res) => {
+            res = res.map((el) => {
+                if (el.value) {
+                    el.startDate = new Date(el.startDate).toISOString();
+                    el.endDate = new Date(el.endDate).toISOString();
+                    return el;
+                }
+            });
+            callback(false, res.filter(day => day != undefined));
+        });
+    }
 
     /**
      * Get body fat percentage samples for a specified date range.

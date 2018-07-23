@@ -141,6 +141,19 @@ LifecycleEventListener {
     }
 
     @ReactMethod
+    public void getSleepSamples(double startDate,
+                                double endDate,
+                                Callback errorCallback,
+                                Callback successCallback) {
+        
+        try {
+            successCallback.invoke(mGoogleFitManager.getSleepHistory().aggregateDataByDate((long)startDate, (long)endDate));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
     public void getBodyFatPercentageSamples(double startDate,
                                             double endDate,
                                             Callback errorCallback,
