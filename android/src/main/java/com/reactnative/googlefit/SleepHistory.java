@@ -50,15 +50,14 @@ public class SleepHistory {
         this.googleFitManager = googleFitManager;
     }
 
-    public ReadableArray aggregateDataByDate(long startTime, long endTime) {
+    public ReadableArray readByDate(long startTime, long endTime) {
 
         DateFormat dateFormat = DateFormat.getDateInstance();
         Log.i(TAG, "Range Start: " + dateFormat.format(startTime));
         Log.i(TAG, "Range End: " + dateFormat.format(endTime));
 
         DataReadRequest readRequest = new DataReadRequest.Builder()
-                .aggregate(DataType.TYPE_ACTIVITY_SEGMENT, DataType.AGGREGATE_ACTIVITY_SUMMARY)
-                .bucketByTime(1, TimeUnit.DAYS)
+                .read(DataType.TYPE_ACTIVITY_SEGMENT)
                 .enableServerQueries()
                 .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
                 .build();

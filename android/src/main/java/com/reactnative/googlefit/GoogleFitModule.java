@@ -147,7 +147,7 @@ LifecycleEventListener {
                                 Callback successCallback) {
         
         try {
-            successCallback.invoke(mGoogleFitManager.getSleepHistory().aggregateDataByDate((long)startDate, (long)endDate));
+            successCallback.invoke(mGoogleFitManager.getSleepHistory().readByDate((long)startDate, (long)endDate));
         } catch (IllegalViewOperationException e) {
             errorCallback.invoke(e.getMessage());
         }
