@@ -158,7 +158,7 @@ class RNGoogleFit {
 
     /**
      * Get sleep samples for a specified date range.
-     * @param {Object} options getHeartRateSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+     * @param {Object} options getSleepSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
      * @callback callback The function will be called with an array of elements.
      */
     getSleepSamples(options, callback) {
