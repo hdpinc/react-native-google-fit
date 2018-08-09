@@ -172,7 +172,7 @@ public class StepHistory {
                             ,
                             //DataType.AGGREGATE_STEP_COUNT_DELTA
                             aggregateType)
-                        .bucketByTime(1, TimeUnit.HOURS) // Half-day resolution
+                        .bucketByTime(1, TimeUnit.HOURS) // one hour resolution
                         .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
                         .build();
             } else {
