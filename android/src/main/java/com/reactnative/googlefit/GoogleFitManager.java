@@ -21,7 +21,6 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.facebook.react.bridge.ActivityEventListener;
-import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
@@ -35,6 +34,8 @@ import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.fitness.Fitness;
+import com.google.android.gms.fitness.Fitness.*;
+import com.google.android.gms.auth.api.signin.*;
 
 
 public class GoogleFitManager implements
@@ -52,11 +53,12 @@ public class GoogleFitManager implements
     private SleepHistory sleepHistory;
     private BodyFatPercentageHistory bodyFatPercentageHistory;
     private StepHistory stepHistory;
-    private WeightsHistory weightsHistory;
+    private BodyHistory bodyHistory;
     private CalorieHistory calorieHistory;
     private StepCounter mStepCounter;
     private StepSensor stepSensor;
     private RecordingApi recordingApi;
+    private ActivityHistory activityHistory;
 
     private static final String TAG = "RNGoogleFit";
 
@@ -70,13 +72,14 @@ public class GoogleFitManager implements
 
         this.mStepCounter = new StepCounter(mReactContext, this, activity);
         this.stepHistory = new StepHistory(mReactContext, this);
-        this.weightsHistory = new WeightsHistory(mReactContext, this);
+        this.bodyHistory = new BodyHistory(mReactContext, this);
         this.distanceHistory = new DistanceHistory(mReactContext, this);
         this.heartRateHistory = new HeartRateHistory(mReactContext, this);
         this.sleepHistory = new SleepHistory(mReactContext, this);
         this.bodyFatPercentageHistory = new BodyFatPercentageHistory(mReactContext, this);
         this.calorieHistory = new CalorieHistory(mReactContext, this);
         this.recordingApi = new RecordingApi(mReactContext, this);
+        this.activityHistory = new ActivityHistory(mReactContext, this);
         //        this.stepSensor = new StepSensor(mReactContext, activity);
     }
 
@@ -96,8 +99,8 @@ public class GoogleFitManager implements
         return stepHistory;
     }
 
-    public WeightsHistory getWeightsHistory() {
-        return weightsHistory;
+    public BodyHistory getBodyHistory() {
+        return bodyHistory;
     }
 
     public DistanceHistory getDistanceHistory() {
@@ -183,6 +186,11 @@ public class GoogleFitManager implements
         mApiClient.connect();
     }
 
+    public void  disconnect() {
+        GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
+        Fitness.getConfigClient(mReactContext, gsa).disableFit();
+    }
+
     public boolean isAuthorized() {
         if (mApiClient != null && mApiClient.isConnected()) {
             return true;
@@ -235,6 +243,14 @@ public class GoogleFitManager implements
 
     @Override
     public void onNewIntent(Intent intent) {
+    }
+
+    public ActivityHistory getActivityHistory() {
+        return activityHistory;
+    }
+
+    public void setActivityHistory(ActivityHistory activityHistory) {
+        this.activityHistory = activityHistory;
     }
 
     public static class GoogleFitCustomErrorDialig extends ErrorDialogFragment {

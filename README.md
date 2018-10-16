@@ -112,7 +112,7 @@ _**Note**: Do not change BuildConfig.APPLICATION_ID - it's a constant value._
 ];
 ```
 
-4. Retrieve Weights
+4. Retrieve Weights (the same logic for height)
 
     ```javascript
     const opt = {
@@ -126,8 +126,21 @@ _**Note**: Do not change BuildConfig.APPLICATION_ID - it's a constant value._
       console.log(res);
     });
     ```
+    
+5. Retrieve Heights
 
-5. Save Weights
+    ```javascript
+    const opt = {
+      startDate: "2017-01-01T00:00:17.971Z", // required
+      endDate: new Date().toISOString(), // required
+    };
+    
+    GoogleFit.getHeightSamples(opt, (err, res) => {
+      console.log(res);
+    });
+    ```
+
+6. Save Weights
 
     ```javascript
     const opt = {
@@ -141,7 +154,7 @@ _**Note**: Do not change BuildConfig.APPLICATION_ID - it's a constant value._
     });
     ```
 
-6. Other methods:
+7. Other methods:
 
     ```javascript
     observeSteps(callback); // On Step Changed Event
@@ -162,6 +175,11 @@ _**Note**: Do not change BuildConfig.APPLICATION_ID - it's a constant value._
 ### Changelog:
 
 ```
+0.7     - Retrieve Heights, open fit activity, unified body method (@EJohnF thanks for the PR!)
+
+0.6     - RN 0.56+ support (@skb1129 thanks for the PR)
+        - nutrition scenario (@@13thdeus thanks for the PR)
+        
 0.5     - New auth process (@priezz thanks for PR)
         - Fix unsubscribe listeners
         - Readme refactoring
