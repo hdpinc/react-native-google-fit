@@ -65,11 +65,12 @@ public class BodyHistory {
         // for height we need to take time, since GoogleFit foundation - https://stackoverflow.com/questions/28482176/read-the-height-in-googlefit-in-android
         startTime = this.dataType == DataType.TYPE_WEIGHT ? startTime : 1401926400;
         DataReadRequest.Builder readRequestBuilder = new DataReadRequest.Builder()
-                .read(this.dataType)
+                //.read(this.dataType) //don't use read other activity
                 .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS);
 
         if (this.dataType == DataType.TYPE_WEIGHT) {
-            readRequestBuilder.bucketByTime(1, TimeUnit.DAYS);
+            readRequestBuilder.aggregate(DataType.TYPE_WEIGHT, DataType.AGGREGATE_WEIGHT_SUMMARY)
+                .bucketByTime(1, TimeUnit.DAYS)
         } else {
             readRequestBuilder.setLimit(1); // need only one height, since it's unchangable
         }
