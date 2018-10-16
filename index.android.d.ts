@@ -5,7 +5,8 @@ declare module "react-native-google-fit" {
 
         authorize(): void;
 
-        disconnect(): void;
+        //can't use disconnect play-services-auth@11.6.0
+        //disconnect(): void;
 
         removeListeners: () => void;
 

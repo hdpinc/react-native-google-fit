@@ -186,10 +186,11 @@ public class GoogleFitManager implements
         mApiClient.connect();
     }
 
-    public void  disconnect() {
-        GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
-        Fitness.getConfigClient(mReactContext, gsa).disableFit();
-    }
+    //can't use disconnect play-services-auth@11.6.0
+    //public void  disconnect() {
+    //    GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
+    //    Fitness.getConfigClient(mReactContext, gsa).disableFit();
+    //}
 
     public boolean isAuthorized() {
         if (mApiClient != null && mApiClient.isConnected()) {

@@ -11,9 +11,10 @@ class RNGoogleFit {
         googleFit.authorize();
     }
 
-    disconnect = () => {
-      googleFit.disconnect();
-    }
+    //can't use disconnect play-services-auth@11.6.0
+    //disconnect = () => {
+    //  googleFit.disconnect();
+    //}
 
     removeListeners = () => {
         this.eventListeners.forEach(eventListener => eventListener.remove())

@@ -81,12 +81,13 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
         mGoogleFitManager.authorize();
     }
 
-    @ReactMethod
-    public void disconnect() {
-        if (mGoogleFitManager != null) {
-            mGoogleFitManager.disconnect();
-        }
-    }
+    //can't use disconnect play-services-auth@11.6.0
+    //@ReactMethod
+    //public void disconnect() {
+    //    if (mGoogleFitManager != null) {
+    //        mGoogleFitManager.disconnect();
+    //    }
+    //}
 
     @ReactMethod
     public void startFitnessRecording() {
