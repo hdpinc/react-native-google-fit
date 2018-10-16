@@ -70,7 +70,7 @@ public class BodyHistory {
 
         if (this.dataType == DataType.TYPE_WEIGHT) {
             readRequestBuilder.aggregate(DataType.TYPE_WEIGHT, DataType.AGGREGATE_WEIGHT_SUMMARY)
-                .bucketByTime(1, TimeUnit.DAYS)
+                .bucketByTime(1, TimeUnit.DAYS);
         } else {
             readRequestBuilder.setLimit(1); // need only one height, since it's unchangable
         }
