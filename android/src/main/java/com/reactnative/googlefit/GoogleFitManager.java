@@ -175,14 +175,12 @@ public class GoogleFitManager implements
                                     mApiClient.connect();
                                 }
                             } else {
-                                WritableMap map = Arguments.createMap();
-                                map.putString("message", "" + connectionResult);
-                                map.putBoolean("cancelled", false);
-                                sendEvent(mReactContext, "GoogleFitAuthorizeFailure", map);
-
                                 Log.i(TAG, "Show dialog using GoogleApiAvailability.getErrorDialog()");
                                 showErrorDialog(connectionResult.getErrorCode());
                                 mAuthInProgress = true;
+                                WritableMap map = Arguments.createMap();
+                                map.putString("message", "" + connectionResult);
+                                sendEvent(mReactContext, "GoogleFitAuthorizeFailure", map);
                             }
                         }
                     }
@@ -238,9 +236,9 @@ public class GoogleFitManager implements
                     mApiClient.connect();
                 }
             } else if (resultCode == Activity.RESULT_CANCELED) {
+                Log.e(TAG, "Authorization - Cancel");
                 WritableMap map = Arguments.createMap();
-                map.putString("message", "Cancelled");
-                map.putBoolean("cancelled", true);
+                map.putString("message", "" + "Authorization cancelled");
                 sendEvent(mReactContext, "GoogleFitAuthorizeFailure", map);
             }
         }

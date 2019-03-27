@@ -248,6 +248,7 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     @ReactMethod
     public void getDailyCalorieSamples(double startDate,
                                        double endDate,
+                                       boolean basalCalculation,
                                        Callback errorCallback,
                                        Callback successCallback) {
 
