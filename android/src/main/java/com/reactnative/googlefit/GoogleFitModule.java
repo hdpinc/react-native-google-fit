@@ -107,13 +107,12 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
         promise.resolve(map);
     }
 
-    //can't use disconnect play-services-auth@11.6.0
-    //@ReactMethod
-    //public void disconnect() {
-    //    if (mGoogleFitManager != null) {
-    //        mGoogleFitManager.disconnect();
-    //    }
-    //}
+    @ReactMethod
+    public void disconnect() {
+        if (mGoogleFitManager != null) {
+            mGoogleFitManager.disconnect();
+        }
+    }
 
     @ReactMethod
     public void startFitnessRecording(ReadableArray dataTypes) {
