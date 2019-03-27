@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import java.util.ArrayList;
 
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
@@ -49,11 +50,11 @@ public class GoogleFitManager implements
     private Activity mActivity;
 
     private DistanceHistory distanceHistory;
-    private HeartRateHistory heartRateHistory;
     private SleepHistory sleepHistory;
     private BodyFatPercentageHistory bodyFatPercentageHistory;
     private StepHistory stepHistory;
     private BodyHistory bodyHistory;
+    private HeartrateHistory heartrateHistory;
     private CalorieHistory calorieHistory;
     private StepCounter mStepCounter;
     private StepSensor stepSensor;
@@ -73,8 +74,8 @@ public class GoogleFitManager implements
         this.mStepCounter = new StepCounter(mReactContext, this, activity);
         this.stepHistory = new StepHistory(mReactContext, this);
         this.bodyHistory = new BodyHistory(mReactContext, this);
+        this.heartrateHistory = new HeartrateHistory(mReactContext, this);
         this.distanceHistory = new DistanceHistory(mReactContext, this);
-        this.heartRateHistory = new HeartRateHistory(mReactContext, this);
         this.sleepHistory = new SleepHistory(mReactContext, this);
         this.bodyFatPercentageHistory = new BodyFatPercentageHistory(mReactContext, this);
         this.calorieHistory = new CalorieHistory(mReactContext, this);
@@ -103,12 +104,12 @@ public class GoogleFitManager implements
         return bodyHistory;
     }
 
-    public DistanceHistory getDistanceHistory() {
-        return distanceHistory;
+    public HeartrateHistory getHeartrateHistory() {
+        return heartrateHistory;
     }
 
-    public HeartRateHistory getHeartRateHistory() {
-        return heartRateHistory;
+    public DistanceHistory getDistanceHistory() {
+        return distanceHistory;
     }
 
     public SleepHistory getSleepHistory() {
@@ -128,14 +129,19 @@ public class GoogleFitManager implements
 
     public CalorieHistory getCalorieHistory() { return calorieHistory; }
 
-    public void authorize() {
+    public void authorize(ArrayList<String> userScopes) {
         final ReactContext mReactContext = this.mReactContext;
 
-        mApiClient = new GoogleApiClient.Builder(mReactContext.getApplicationContext())
+        GoogleApiClient.Builder apiClientBuilder = new GoogleApiClient.Builder(mReactContext.getApplicationContext())
                 .addApi(Fitness.SENSORS_API)
                 .addApi(Fitness.HISTORY_API)
-                .addScope(new Scope(Scopes.FITNESS_ACTIVITY_READ))
-                .addScope(new Scope(Scopes.FITNESS_BODY_READ))
+                .addApi(Fitness.RECORDING_API);
+
+        for (String scopeName : userScopes) {
+            apiClientBuilder.addScope(new Scope(scopeName));
+        }
+
+        mApiClient = apiClientBuilder
                 .addConnectionCallbacks(
                     new GoogleApiClient.ConnectionCallbacks() {
                         @Override
@@ -186,11 +192,11 @@ public class GoogleFitManager implements
         mApiClient.connect();
     }
 
-    //can't use disconnect play-services-auth@11.6.0
-    //public void  disconnect() {
-    //    GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
-    //    Fitness.getConfigClient(mReactContext, gsa).disableFit();
-    //}
+    public void  disconnect() {
+        GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
+        Fitness.getConfigClient(mReactContext, gsa).disableFit();
+        mApiClient.disconnect();
+    }
 
     public boolean isAuthorized() {
         if (mApiClient != null && mApiClient.isConnected()) {
@@ -236,8 +242,6 @@ public class GoogleFitManager implements
                 map.putString("message", "Cancelled");
                 map.putBoolean("cancelled", true);
                 sendEvent(mReactContext, "GoogleFitAuthorizeFailure", map);
-
-                Log.e(TAG, "Authorization - Cancel");
             }
         }
     }

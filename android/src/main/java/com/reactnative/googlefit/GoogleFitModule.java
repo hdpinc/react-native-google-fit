@@ -13,17 +13,24 @@ package com.reactnative.googlefit;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.util.Log;
+import java.util.ArrayList;
 import android.content.Intent;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.LifecycleEventListener;
+import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.uimanager.IllegalViewOperationException;
 import com.google.android.gms.fitness.data.DataType;
+import com.google.android.gms.fitness.data.HealthDataTypes;
+import com.facebook.react.bridge.WritableMap;
 
 
 public class GoogleFitModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
@@ -68,7 +75,7 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     }
 
     @ReactMethod
-    public void authorize() {
+    public void authorize(ReadableMap options) {
         final Activity activity = getCurrentActivity();
 
         if (mGoogleFitManager == null) {
@@ -78,7 +85,26 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
         if (mGoogleFitManager.isAuthorized()) {
             return;
         }
-        mGoogleFitManager.authorize();
+
+        ReadableArray scopes = options.getArray("scopes");
+        ArrayList<String> scopesList = new ArrayList<String>();
+
+        for (Object type : scopes.toArrayList()) {
+            scopesList.add(type.toString());
+        }
+
+        mGoogleFitManager.authorize(scopesList);
+    }
+
+    @ReactMethod
+    public void isAuthorized (final Promise promise) {
+        boolean isAuthorized = false;
+        if (mGoogleFitManager != null && mGoogleFitManager.isAuthorized() ) {
+            isAuthorized = true;
+        }
+        WritableMap map = Arguments.createMap();
+        map.putBoolean("isAuthorized", isAuthorized);
+        promise.resolve(map);
     }
 
     //can't use disconnect play-services-auth@11.6.0
@@ -90,8 +116,8 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     //}
 
     @ReactMethod
-    public void startFitnessRecording() {
-        mGoogleFitManager.getRecordingApi().subscribe();
+    public void startFitnessRecording(ReadableArray dataTypes) {
+        mGoogleFitManager.getRecordingApi().subscribe(dataTypes);
     }
 
     @ReactMethod
@@ -116,7 +142,7 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
                                          Callback successCallback) {
 
         try {
-            successCallback.invoke(mGoogleFitManager.getStepHistory().aggregateDataByDate((long) startDate, (long) endDate));
+            mGoogleFitManager.getStepHistory().aggregateDataByDate((long) startDate, (long) endDate, successCallback);
         } catch (IllegalViewOperationException e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -143,19 +169,6 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
 
         try {
             successCallback.invoke(mGoogleFitManager.getDistanceHistory().aggregateDataByDate((long) startDate, (long) endDate));
-        } catch (IllegalViewOperationException e) {
-            errorCallback.invoke(e.getMessage());
-        }
-    }
-
-    @ReactMethod
-    public void getHeartRateSamples(double startDate,
-                                    double endDate,
-                                    Callback errorCallback,
-                                    Callback successCallback) {
-        
-        try {
-            successCallback.invoke(mGoogleFitManager.getHeartRateHistory().readByDate((long)startDate, (long)endDate));
         } catch (IllegalViewOperationException e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -239,7 +252,7 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
                                        Callback successCallback) {
 
         try {
-            successCallback.invoke(mGoogleFitManager.getCalorieHistory().aggregateDataByDate((long) startDate, (long) endDate));
+            successCallback.invoke(mGoogleFitManager.getCalorieHistory().aggregateDataByDate((long) startDate, (long) endDate, basalCalculation));
         } catch (IllegalViewOperationException e) {
             errorCallback.invoke(e.getMessage());
         }
@@ -339,4 +352,32 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
         return mGoogleFitManager.isAuthorized();
     }
 
+    @ReactMethod
+    public void getBloodPressureSamples(double startDate,
+                                 double endDate,
+                                 Callback errorCallback,
+                                 Callback successCallback) {
+        try {
+            HeartrateHistory heartrateHistory = mGoogleFitManager.getHeartrateHistory();
+            heartrateHistory.setDataType(HealthDataTypes.TYPE_BLOOD_PRESSURE);
+            successCallback.invoke(heartrateHistory.getHistory((long)startDate, (long)endDate));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void getHeartRateSamples(double startDate,
+                                 double endDate,
+                                 Callback errorCallback,
+                                 Callback successCallback) {
+
+        try {
+            HeartrateHistory heartrateHistory = mGoogleFitManager.getHeartrateHistory();
+            heartrateHistory.setDataType(DataType.TYPE_HEART_RATE_BPM);
+            successCallback.invoke(heartrateHistory.getHistory((long)startDate, (long)endDate));
+        } catch (IllegalViewOperationException e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
 }
