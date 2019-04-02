@@ -19,7 +19,7 @@ export function buildDailySteps (steps) {
 
   const dateMap = []
   for (const index in results) {
-    dateMap.push({date: index, value: results[index]})
+    dateMap.push({startDate: index, value: results[index]})
   }
   return dateMap
 }
