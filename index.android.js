@@ -376,80 +376,23 @@ class RNGoogleFit {
     this.removeListeners()
   }
 
-    /**
-     * Get heart rate samples for a specified date range.
-     * @param {Object} options getHeartRateSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
-     * @callback callback The function will be called with an array of elements.
-     */
-    getHeartRateSamples(options, callback) {
-        const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
-        const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
-        googleFit.getHeartRateSamples( startDate,
-            endDate,
-            (msg) => {
-            callback(msg, false);
-        },
-        (res) => {
-            res = res.map((el) => {
-                if (el.value) {
-                    el.startDate = new Date(el.startDate).toISOString();
-                    el.endDate = new Date(el.endDate).toISOString();
-                    return el;
-                }
-            });
-            callback(false, res.filter(day => day != undefined));
-        });
-    }
-
-    /**
-     * Get sleep samples for a specified date range.
-     * @param {Object} options getSleepSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
-     * @callback callback The function will be called with an array of elements.
-     */
-    getSleepSamples(options, callback) {
-        const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
-        const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
-        googleFit.getSleepSamples( startDate,
-            endDate,
-            (msg) => {
-            callback(msg, false);
-        },
-        (res) => {
-            res = res.map((el) => {
-                if (el.value) {
-                    el.startDate = new Date(el.startDate).toISOString();
-                    el.endDate = new Date(el.endDate).toISOString();
-                    return el;
-                }
-            });
-            callback(false, res.filter(day => day != undefined));
-        });
-    }
-
-    /**
-     * Get body fat percentage samples for a specified date range.
-     * @param {Object} options getBodyFatPercentageSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
-     * @callback callback The function will be called with an array of elements.
-     */
-    getBodyFatPercentageSamples(options, callback) {
-        const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
-        const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
-        googleFit.getBodyFatPercentageSamples( startDate,
-            endDate,
-            (msg) => {
-            callback(msg, false);
-        },
-        (res) => {
-            res = res.map((el) => {
-                if (el.bodyFatPercentage) {
-                    el.startDate = new Date(el.startDate).toISOString();
-                    el.endDate = new Date(el.endDate).toISOString();
-                    return el;
-                }
-            });
-            callback(false, res.filter(day => day != undefined));
-        });
-    }
+  getHeartRateSamples(options, callback) {
+    const startDate = Date.parse(options.startDate)
+    const endDate = Date.parse(options.endDate)
+    googleFit.getHeartRateSamples(
+      startDate,
+      endDate,
+      (msg) => {
+        callback(msg, false)
+      },
+      (res) => {
+        if (res.length > 0) {
+          callback(false, prepareResponse(res, 'value'))
+        } else {
+          callback('There is no any heart rate data for this period', false)
+        }
+      })
+  }
 
   getBloodPressureSamples(options, callback) {
     const startDate = Date.parse(options.startDate)
@@ -468,6 +411,56 @@ class RNGoogleFit {
         }
       })
   }
+
+      /**
+     * Get sleep samples for a specified date range.
+     * @param {Object} options getSleepSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+     * @callback callback The function will be called with an array of elements.
+     */
+     getSleepSamples(options, callback) {
+      const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
+      const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
+      googleFit.getSleepSamples( startDate,
+        endDate,
+        (msg) => {
+          callback(msg, false);
+        },
+        (res) => {
+          res = res.map((el) => {
+            if (el.value) {
+              el.startDate = new Date(el.startDate).toISOString();
+              el.endDate = new Date(el.endDate).toISOString();
+              return el;
+            }
+          });
+          callback(false, res.filter(day => day != undefined));
+        });
+    }
+
+    /**
+     * Get body fat percentage samples for a specified date range.
+     * @param {Object} options getBodyFatPercentageSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+     * @callback callback The function will be called with an array of elements.
+     */
+     getBodyFatPercentageSamples(options, callback) {
+      const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
+      const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
+      googleFit.getBodyFatPercentageSamples( startDate,
+        endDate,
+        (msg) => {
+          callback(msg, false);
+        },
+        (res) => {
+          res = res.map((el) => {
+            if (el.bodyFatPercentage) {
+              el.startDate = new Date(el.startDate).toISOString();
+              el.endDate = new Date(el.endDate).toISOString();
+              return el;
+            }
+          });
+          callback(false, res.filter(day => day != undefined));
+        });
+    }
 
 }
 
@@ -580,9 +573,7 @@ export const Nutrient = Object.freeze({
 
 /*
 TODO: Add food example to readme
-
 same as here: https://developers.google.com/fit/scenarios/add-nutrition-data
-
 import GoogleFit, {Nutrient, MealType, FoodIntake, WeightSample} from "react-native-google-fit";
 ...
     addFoodExample(): Promise<void> {
@@ -604,7 +595,6 @@ import GoogleFit, {Nutrient, MealType, FoodIntake, WeightSample} from "react-nat
                     [Nutrient.POTASSIUM]: 422,
                 }
             } as FoodIntake;
-
             GoogleFit.saveFood(options, (err: boolean) => {
                 if (!err) {
                     resolve();
