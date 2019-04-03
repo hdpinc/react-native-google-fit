@@ -19,6 +19,7 @@ export function buildDailySteps (steps) {
 
   const dateMap = []
   for (const index in results) {
+    //PepUp use startDate key
     dateMap.push({startDate: index, value: results[index]})
   }
   return dateMap
