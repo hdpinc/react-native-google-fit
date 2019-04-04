@@ -225,7 +225,6 @@ class RNGoogleFit {
         callback(msg, false)
       },
       (res) => {
-        if (res.length > 0) {
           res = res.map((el) => {
             if (el.value) {
               if (options.unit === 'pound') {
@@ -237,9 +236,6 @@ class RNGoogleFit {
             }
           })
           callback(false, res.filter((day) => !isNil(day)))
-        } else {
-          callback('There is no any weight data for this period', false)
-        }
       })
   }
 
