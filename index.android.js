@@ -98,16 +98,12 @@ class RNGoogleFit {
     googleFit.getDailyStepCountSamples(startDate, endDate,
       (msg) => callback(msg, false),
       (res) => {
-        if (res.length > 0) {
           callback(false, res.map(function (dev) {
             const obj = {}
             obj.source = dev.source.appPackage + ((dev.source.stream) ? ':' + dev.source.stream : '')
             obj.steps = buildDailySteps(dev.steps)
             return obj
           }, this))
-        } else {
-          callback('There is no any steps data for this period', false)
-        }
       }
     )
   }
@@ -229,7 +225,6 @@ class RNGoogleFit {
         callback(msg, false)
       },
       (res) => {
-        if (res.length > 0) {
           res = res.map((el) => {
             if (el.value) {
               if (options.unit === 'pound') {
@@ -241,9 +236,6 @@ class RNGoogleFit {
             }
           })
           callback(false, res.filter((day) => !isNil(day)))
-        } else {
-          callback('There is no any weight data for this period', false)
-        }
       })
   }
 
@@ -386,11 +378,7 @@ class RNGoogleFit {
         callback(msg, false)
       },
       (res) => {
-        if (res.length > 0) {
           callback(false, prepareResponse(res, 'value'))
-        } else {
-          callback('There is no any heart rate data for this period', false)
-        }
       })
   }
 
