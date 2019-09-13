@@ -99,23 +99,19 @@ class RNGoogleFit {
       endDate,
       msg => callback(msg, false),
       res => {
-        if (res.length > 0) {
-          callback(
+        // PepUp use 0 response
+        callback(
             false,
             res.map(function(dev) {
               const obj = {}
               obj.source =
-                dev.source.appPackage +
-                (dev.source.stream ? ':' + dev.source.stream : '')
+              dev.source.appPackage +
+              (dev.source.stream ? ':' + dev.source.stream : '')
               obj.steps = buildDailySteps(dev.steps)
               return obj
             }, this)
-          )
-        } else {
-          callback('There is no any steps data for this period', false)
-        }
-      }
-    )
+        )
+    })
   }
 
   /**
@@ -277,8 +273,8 @@ class RNGoogleFit {
         callback(msg, false)
       },
       res => {
-        if (res.length > 0) {
-          res = res.map(el => {
+        // PepUp use 0 response
+        res = res.map(el => {
             if (el.value) {
               if (options.unit === 'pound') {
                 el.value = KgToLbs(el.value) //convert back to pounds
@@ -287,11 +283,8 @@ class RNGoogleFit {
               el.endDate = new Date(el.endDate).toISOString()
               return el
             }
-          })
-          callback(false, res.filter(day => !isNil(day)))
-        } else {
-          callback('There is no any weight data for this period', false)
-        }
+        })
+        callback(false, res.filter(day => !isNil(day)))
       }
     )
   }
@@ -448,11 +441,8 @@ class RNGoogleFit {
         callback(msg, false)
       },
       res => {
-        if (res.length > 0) {
-          callback(false, prepareResponse(res, 'value'))
-        } else {
-          callback('There is no any heart rate data for this period', false)
-        }
+        // PepUp use 0 response
+        callback(false, prepareResponse(res, 'value'))
       }
     )
   }
@@ -467,11 +457,8 @@ class RNGoogleFit {
         callback(msg, false)
       },
       res => {
-        if (res.length > 0) {
-          callback(false, prepareResponse(res, 'value'))
-        } else {
-          callback('There is no any heart rate data for this period', false)
-        }
+        // PepUp use 0 response
+        callback(false, prepareResponse(res, 'value'))
       }
     )
   }
@@ -487,10 +474,10 @@ class RNGoogleFit {
       const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
       googleFit.getSleepSamples( startDate,
         endDate,
-        (msg) => {
+        msg => {
           callback(msg, false);
         },
-        (res) => {
+        res => {
           res = res.map((el) => {
             if (el.value) {
               el.startDate = new Date(el.startDate).toISOString();
@@ -499,7 +486,8 @@ class RNGoogleFit {
             }
           });
           callback(false, res.filter(day => day != undefined));
-        });
+        }
+      );
     }
 
     /**
@@ -513,10 +501,10 @@ class RNGoogleFit {
       const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
       googleFit.getBodyFatPercentageSamples( startDate,
         endDate,
-        (msg) => {
+        msg => {
           callback(msg, false);
         },
-        (res) => {
+        res => {
           res = res.map((el) => {
             if (el.bodyFatPercentage) {
               el.startDate = new Date(el.startDate).toISOString();
@@ -525,7 +513,8 @@ class RNGoogleFit {
             }
           });
           callback(false, res.filter(day => day != undefined));
-        });
+        }
+      );
     }
 
 }
