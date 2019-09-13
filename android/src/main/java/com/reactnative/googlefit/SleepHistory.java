@@ -22,13 +22,15 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.google.android.gms.fitness.Fitness;
 import com.google.android.gms.fitness.FitnessActivities;
-import com.google.android.gms.fitness.data.Bucket;
-import com.google.android.gms.fitness.data.DataPoint;
-import com.google.android.gms.fitness.data.DataSet;
 import com.google.android.gms.fitness.data.DataType;
-import com.google.android.gms.fitness.data.Field;
-import com.google.android.gms.fitness.request.DataReadRequest;
-import com.google.android.gms.fitness.result.DataReadResult;
+import com.google.android.gms.fitness.data.Session;
+import com.google.android.gms.fitness.request.SessionReadRequest;
+import com.google.android.gms.fitness.result.SessionReadResponse;
+import com.google.android.gms.auth.api.signin.*;
+import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.common.Scopes;
+
+import com.google.android.gms.tasks.*;
 
 import java.text.DateFormat;
 import java.text.Format;
@@ -36,6 +38,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+import java.lang.InterruptedException;
 
 
 public class SleepHistory {
@@ -51,77 +56,60 @@ public class SleepHistory {
     }
 
     public ReadableArray readByDate(long startTime, long endTime) {
+        SessionReadRequest readRequest = new SessionReadRequest.Builder()
+        .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
+        .enableServerQueries()
+        .readSessionsFromAllApps()
+        .read(DataType.TYPE_ACTIVITY_SEGMENT)
+        .build();
 
-        DateFormat dateFormat = DateFormat.getDateInstance();
-        Log.i(TAG, "Range Start: " + dateFormat.format(startTime));
-        Log.i(TAG, "Range End: " + dateFormat.format(endTime));
-
-        DataReadRequest readRequest = new DataReadRequest.Builder()
-                .read(DataType.TYPE_ACTIVITY_SEGMENT)
-                .enableServerQueries()
-                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
-                .build();
-
-        DataReadResult dataReadResult = Fitness.HistoryApi.readData(googleFitManager.getGoogleApiClient(), readRequest).await(1, TimeUnit.MINUTES);
-
-
+        GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(this.mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
+        Task<SessionReadResponse> response = Fitness.getSessionsClient(this.mReactContext, gsa).readSession(readRequest);
         WritableArray map = Arguments.createArray();
 
-        //Used for aggregated data
-        if (dataReadResult.getBuckets().size() > 0) {
-            Log.i(TAG, "Number of buckets: " + dataReadResult.getBuckets().size());
-            for (Bucket bucket : dataReadResult.getBuckets()) {
-                List<DataSet> dataSets = bucket.getDataSets();
-                for (DataSet dataSet : dataSets) {
-                    processDataSet(dataSet, map);
-                }
+        try {
+            SessionReadResponse sessionReadResponse = Tasks.await(response, 1, TimeUnit.MINUTES);
+            List<Session> sessions = sessionReadResponse.getSessions();
+            for (Session session : sessions) {
+                Log.i(TAG, "Session start");
+                processDataSet(session,map);
             }
-        }
-        //Used for non-aggregated data
-        else if (dataReadResult.getDataSets().size() > 0) {
-            Log.i(TAG, "Number of returned DataSets: " + dataReadResult.getDataSets().size());
-            for (DataSet dataSet : dataReadResult.getDataSets()) {
-                processDataSet(dataSet, map);
-            }
+        } catch (ExecutionException e) {
+            Log.i(TAG, e.toString());
+        } catch (InterruptedException e) {
+            Log.i(TAG, e.toString());
+        } catch (TimeoutException e) {
+            Log.i(TAG, e.toString());
         }
 
         return map;
     }
 
-
-    private void processDataSet(DataSet dataSet, WritableArray map) {
-        Log.i(TAG, "Data returned for Data type: " + dataSet.getDataType().getName());
+    private void processDataSet(Session session, WritableArray map) {
         DateFormat dateFormat = DateFormat.getDateInstance();
         DateFormat timeFormat = DateFormat.getTimeInstance();
         Format formatter = new SimpleDateFormat("EEE");
 
-        for (DataPoint dp : dataSet.getDataPoints()) {
-            Log.i(TAG, "Data point:");
-            Log.i(TAG, "\tType: " + dp.getDataType().getName());
-            Log.i(TAG, "\tStart: " + dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)) + " " + timeFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
-            Log.i(TAG, "\tEnd: " + dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)) + " " + timeFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
+        String activity = session.getActivity();
+        Log.i(TAG, "\tActivity: " + activity);
+        if(activity.equals(FitnessActivities.SLEEP)){
+            long startTime = session.getStartTime(TimeUnit.MILLISECONDS);
+            long endTime = session.getEndTime(TimeUnit.MILLISECONDS);
+            Double duration = new Double((endTime - startTime) / 1000 / 60);
+            String day = formatter.format(new Date(startTime));
 
-            String day = formatter.format(new Date(dp.getStartTime(TimeUnit.MILLISECONDS)));
-            Log.i(TAG, "Day: " + day);
+            Log.i(TAG, "\tData point:");
+            Log.i(TAG, "\tType: " + session.getName());
+            Log.i(TAG, "\tStart: " + dateFormat.format(startTime) + " " + timeFormat.format(startTime));
+            Log.i(TAG, "\tEnd: " + dateFormat.format(endTime) + " " + timeFormat.format(endTime));
+            Log.i(TAG, "\tDay: " + day);
 
-            for(Field field : dp.getDataType().getFields()) {
-                String activity = dp.getValue(field).asActivity();
-                Log.i(TAG, "\tField: " + field.getName() + " Value: " + activity);
-
-                if(activity.equals(FitnessActivities.SLEEP)){
-                    long startTime = dp.getStartTime(TimeUnit.MILLISECONDS);
-                    long endTime = dp.getEndTime(TimeUnit.MILLISECONDS);
-                    Double duration = new Double((endTime - startTime) / 1000 / 60);
-
-                    WritableMap sleepMap = Arguments.createMap();
-                    sleepMap.putString("day", day);
-                    sleepMap.putDouble("startDate", startTime);
-                    sleepMap.putDouble("endDate", endTime);
-                    sleepMap.putDouble("value", duration.intValue());
-                    map.pushMap(sleepMap);
-                }
-            }
+            WritableMap sleepMap = Arguments.createMap();
+            sleepMap.putString("day", day);
+            sleepMap.putDouble("startDate", startTime);
+            sleepMap.putDouble("endDate", endTime);
+            sleepMap.putDouble("value", duration.intValue());
+            map.pushMap(sleepMap);
         }
     }
-
 }
