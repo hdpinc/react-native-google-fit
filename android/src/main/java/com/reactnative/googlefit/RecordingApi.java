@@ -49,11 +49,11 @@ public class RecordingApi {
     public static DataType getDataType(String dataTypeName) {
         switch (dataTypeName) {
             case "step":
-                return DataType.TYPE_STEP_COUNT_CUMULATIVE;
+                return DataType.TYPE_STEP_COUNT_DELTA;
             case "distance":
                 return DataType.TYPE_DISTANCE_DELTA;
             case "activity":
-                return DataType.TYPE_ACTIVITY_SAMPLES;
+                return DataType.TYPE_ACTIVITY_SEGMENT;
             default:
                 Log.v(TAG, "Unknown data type " + dataTypeName);
                 return null;

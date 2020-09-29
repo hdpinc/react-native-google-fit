@@ -1,8 +1,19 @@
 'use strict'
-import { DeviceEventEmitter, NativeModules } from 'react-native';
+import { DeviceEventEmitter, NativeModules, PermissionsAndroid } from 'react-native';
+import moment from 'moment';
 
 import PossibleScopes from './src/scopes';
-import { buildDailySteps, isNil, KgToLbs, lbsAndOzToK, prepareDailyResponse, prepareResponse } from './src/utils';
+import {
+  buildDailySteps,
+  isNil,
+  KgToLbs,
+  lbsAndOzToK,
+  prepareDailyResponse,
+  prepareResponse,
+  prepareHydrationResponse,
+  prepareDeleteOptions,
+  getWeekBoundary,
+} from './src/utils';
 
 const googleFit = NativeModules.RNGoogleFit
 
@@ -59,6 +70,47 @@ class RNGoogleFit {
     this.eventListeners = []
   }
 
+
+  // recommend to refactor both permission to allow other permission options besides PERMISSONS.ACCESS_FINE_LOCATION
+  // check permissions
+  checkPermissionAndroid = async () => {
+    const response = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+    return response === true;
+  }
+
+  // request permissions
+  requestPermissionAndroid = async (dataTypes) => {
+
+    const check = await this.checkPermissionAndroid();
+
+    if (dataTypes.includes('distance') && !check) {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: "Access Location Permisson",
+            message:
+              "Enable location access for Google Fit Api. " +
+              "Cancel may cause inaccuray result",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK"
+          }
+        );
+
+        // this need to be changed in the future if we want to use RecordingAPI for more sensitive permissions
+        if( granted === PermissionsAndroid.RESULTS.GRANTED ) {
+          // we don't do anything here since the permissons are granted
+        } else {
+          // remove distance from array to avoid crash,
+          return dataTypes.filter(data => data !== 'distance');
+        }
+      } catch (err) {
+        console.warn(err);
+      };
+    }
+    return dataTypes;
+  }
+
   /**
    * Start recording fitness data
    *
@@ -71,47 +123,75 @@ class RNGoogleFit {
    * Simply create an event listener for the {DATA_TYPE}_RECORDING (ex. STEP_RECORDING)
    * and check for {recording: true} as the event data
    */
-  startRecording = (callback, dataTypes = ['step', 'distance']) => {
-    googleFit.startFitnessRecording(dataTypes)
+  startRecording = (callback, dataTypes = ['step']) => {
 
-    const eventListeners = dataTypes.map(dataTypeName => {
-      const eventName = `${dataTypeName.toUpperCase()}_RECORDING`
+    this.requestPermissionAndroid(dataTypes).then((dataTypes) => {
+      googleFit.startFitnessRecording(dataTypes)
 
-      return DeviceEventEmitter.addListener(eventName, event => callback(event))
+      const eventListeners = dataTypes.map(dataTypeName => {
+        const eventName = `${dataTypeName.toUpperCase()}_RECORDING`
+
+        return DeviceEventEmitter.addListener(eventName, event => callback(event))
+      })
+
+      this.eventListeners.push(...eventListeners)
     })
-
-    this.eventListeners.push(...eventListeners)
   }
 
-  // Will be deprecated in future releases
-  getSteps(dayStart, dayEnd) {
-    googleFit.getDailySteps(Date.parse(dayStart), Date.parse(dayEnd))
+
+  /**
+   * A shortcut to get the total steps of a given day by using getDailyStepCountSamples
+   * @param {Date} date optional param, new moment() will be used if date is not provided
+   */
+  getDailySteps(date = moment()) {
+    const options = {
+      startDate: moment(date).startOf('day'),
+      endDate: moment(date).endOf('day'),
+    };
+    return this.getDailyStepCountSamples(options);
   }
 
-  // Will be deprecated in future releases
-  getWeeklySteps(startDate) {
-    googleFit.getWeeklySteps(Date.parse(startDate), Date.now())
+  /**
+   * A shortcut to get the weekly steps of a given day by using getDailyStepCountSamples
+   * @param {Date} date optional param, new Date() will be used if date is not provided
+   * @param {number} adjustment, use to adjust the default start day of week, 0 = Sunday, 1 = Monday, etc.
+   */
+  getWeeklySteps(date=new Date(), adjustment=0) {
+    const [startDate, endDate] = getWeekBoundary(date, adjustment);
+    const options = {
+      startDate: startDate,
+      endDate: endDate,
+    }
+    return this.getDailyStepCountSamples(options);
   }
 
-  _retrieveDailyStepCountSamples = (startDate, endDate, callback) => {
+  isConfigsEmpty(obj) {
+    for(var prop in obj) return false;
+    return true;
+  }
+
+  _retrieveDailyStepCountSamples = (startDate, endDate, options, callback) => {
     googleFit.getDailyStepCountSamples(
       startDate,
       endDate,
+      options.configs,
       msg => callback(msg, false),
       res => {
         // PepUp use 0 response
-        callback(
+          callback(
             false,
             res.map(function(dev) {
               const obj = {}
               obj.source =
-              dev.source.appPackage +
-              (dev.source.stream ? ':' + dev.source.stream : '')
+                dev.source.appPackage +
+                (dev.source.stream ? ':' + dev.source.stream : '')
               obj.steps = buildDailySteps(dev.steps)
+              obj.rawSteps = this.isConfigsEmpty(options.configs) ? [] : dev.steps
               return obj
             }, this)
-        )
-    })
+          )
+      }
+    )
   }
 
   /**
@@ -132,6 +212,7 @@ class RNGoogleFit {
         this._retrieveDailyStepCountSamples(
           startDate,
           endDate,
+          options,
           (error, result) => {
             if (!error) {
               resolve(result)
@@ -142,7 +223,24 @@ class RNGoogleFit {
         )
       })
     }
-    this._retrieveDailyStepCountSamples(startDate, endDate, callback)
+    this._retrieveDailyStepCountSamples(startDate, endDate, options, callback)
+  }
+
+  /**
+   * Get the total steps per day over a specified date range.
+   * @param {Object} options getUserInputSteps accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+   * @param {Function} callback The function will be called with an array of elements.
+   */
+
+  getUserInputSteps = (options, callback) => {
+    const startDate = !isNil(options.startDate) ? Date.parse(options.startDate) : (new Date()).setHours(0, 0, 0, 0)
+    const endDate = !isNil(options.endDate) ? Date.parse(options.endDate) : (new Date()).valueOf()
+    googleFit.getUserInputSteps(startDate, endDate,
+      (msg) => callback(msg, false),
+      (res) => {
+        callback(null, res);
+      }
+    )
   }
 
   /**
@@ -157,10 +255,15 @@ class RNGoogleFit {
       : new Date().setHours(0, 0, 0, 0)
     const endDate = !isNil(options.endDate)
       ? Date.parse(options.endDate)
-      : new Date().valueOf()
+      : new Date().valueOf();
+    const bucketInterval = options.bucketInterval || 1;
+    const bucketUnit = options.bucketUnit || "DAY";
+
     googleFit.getDailyDistanceSamples(
       startDate,
       endDate,
+      bucketInterval,
+      bucketUnit,
       msg => {
         callback(msg, false)
       },
@@ -203,10 +306,15 @@ class RNGoogleFit {
     const basalCalculation = options.basalCalculation !== false
     const startDate = Date.parse(options.startDate)
     const endDate = Date.parse(options.endDate)
+    const bucketInterval = options.bucketInterval || 1
+    const bucketUnit = options.bucketUnit || "DAY"
+
     googleFit.getDailyCalorieSamples(
       startDate,
       endDate,
       basalCalculation,
+      bucketInterval,
+      bucketUnit,
       msg => {
         callback(msg, false)
       },
@@ -223,9 +331,13 @@ class RNGoogleFit {
   getDailyNutritionSamples(options, callback) {
     const startDate = Date.parse(options.startDate)
     const endDate = Date.parse(options.endDate)
+    const bucketInterval = options.bucketInterval || 1
+    const bucketUnit = options.bucketUnit || "DAY"
     googleFit.getDailyNutritionSamples(
       startDate,
       endDate,
+      bucketInterval,
+      bucketUnit,
       msg => {
         callback(msg, false)
       },
@@ -338,12 +450,8 @@ class RNGoogleFit {
   }
 
   deleteWeight = (options, callback) => {
-    if (options.unit === 'pound') {
-      options.value = lbsAndOzToK({ pounds: options.value, ounces: 0 }) //convert pounds and ounces to kg
-    }
-    options.date = Date.parse(options.date)
     googleFit.deleteWeight(
-      options,
+      prepareDeleteOptions(options),
       msg => {
         callback(msg, false)
       },
@@ -354,9 +462,8 @@ class RNGoogleFit {
   }
 
   deleteHeight = (options, callback) => {
-    options.date = Date.parse(options.date)
-    googleFit.deleteWeight(
-      options,
+    googleFit.deleteHeight(
+      prepareDeleteOptions(options),
       msg => {
         callback(msg, false)
       },
@@ -434,9 +541,13 @@ class RNGoogleFit {
   getHeartRateSamples(options, callback) {
     const startDate = Date.parse(options.startDate)
     const endDate = Date.parse(options.endDate)
+    const bucketInterval = options.bucketInterval || 1
+    const bucketUnit = options.bucketUnit || "DAY"
     googleFit.getHeartRateSamples(
       startDate,
       endDate,
+      bucketInterval,
+      bucketUnit,
       msg => {
         callback(msg, false)
       },
@@ -450,47 +561,93 @@ class RNGoogleFit {
   getBloodPressureSamples(options, callback) {
     const startDate = Date.parse(options.startDate)
     const endDate = Date.parse(options.endDate)
+    const bucketInterval = options.bucketInterval || 1
+    const bucketUnit = options.bucketUnit || "DAY"
     googleFit.getBloodPressureSamples(
       startDate,
       endDate,
+      bucketInterval,
+      bucketUnit,
       msg => {
         callback(msg, false)
       },
       res => {
         // PepUp use 0 response
-        callback(false, prepareResponse(res, 'value'))
+          callback(false, prepareResponse(res, 'value'))
       }
     )
   }
 
-    /**
-     * PepUp get sleep Sample
-     * Get sleep samples for a specified date range.
-     * @param {Object} options getSleepSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
-     * @callback callback The function will be called with an array of elements.
-     */
-     getSleepSamples(options, callback) {
-      const startDate = options.startDate != undefined ? Date.parse(options.startDate) : (new Date()).setHours(0,0,0,0);
-      const endDate = options.endDate != undefined ? Date.parse(options.endDate) : (new Date()).valueOf();
-      googleFit.getSleepSamples( startDate,
-        endDate,
-        msg => {
-          callback(msg, false);
-        },
-        res => {
-          res = res.map((el) => {
-            if (el.value) {
-              el.startDate = new Date(el.startDate).toISOString();
-              el.endDate = new Date(el.endDate).toISOString();
-              return el;
-            }
-          });
-          callback(false, res.filter(day => day != undefined));
-        }
-      );
-    }
+  getHydrationSamples = (startDate, endDate, callback) => {
+    startDate = !isNil(startDate)
+      ? Date.parse(startDate)
+      : new Date().setHours(0, 0, 0, 0)
+    endDate = !isNil(endDate)
+      ? Date.parse(endDate)
+      : new Date().valueOf()
+    googleFit.getHydrationSamples(
+      startDate,
+      endDate,
+      msg => callback(true, msg),
+      res => {
+        callback(
+          false,
+          prepareHydrationResponse(res)
+        )
+      }
+    )
+  }
 
-    /**
+  saveHydration(hydrationArray, callback) {
+    googleFit.saveHydration(
+      hydrationArray,
+      msg => {
+        callback(true, msg)
+      },
+      res => {
+        callback(false, res)
+      }
+    )
+  }
+
+  deleteHydration = (options, callback) => {
+    googleFit.deleteHydration(
+      prepareDeleteOptions(options),
+      msg => {
+        callback(msg, false)
+      },
+      res => {
+        callback(false, res)
+      }
+    )
+  }
+
+  /**
+   * Get the sleep sessions over a specified date range.
+   * @param {Object} options getSleepData accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
+   * @param {Function} callback The function will be called with an array of elements.
+   */
+
+  getSleepData = (options, callback) => {
+    const startDate = !isNil(options.startDate)
+      ? Date.parse(options.startDate)
+      : new Date().setHours(0, 0, 0, 0)
+    const endDate = !isNil(options.endDate)
+      ? Date.parse(options.endDate)
+      : new Date().valueOf()
+
+    googleFit.getSleepData(
+      startDate,
+      endDate,
+      msg => callback(true, msg),
+      res => {
+        // PepUp use 0 response
+          callback(false, prepareResponse(res, 'value'))
+      }
+    )
+  }
+
+      /**
      * PepUp get BodyFatPercentage
      * Get body fat percentage samples for a specified date range.
      * @param {Object} options getBodyFatPercentageSamples accepts an options object containing required startDate: ISO8601Timestamp and endDate: ISO8601Timestamp.
@@ -628,7 +785,9 @@ export const Nutrient = Object.freeze({
 
 /*
 TODO: Add food example to readme
+
 same as here: https://developers.google.com/fit/scenarios/add-nutrition-data
+
 import GoogleFit, {Nutrient, MealType, FoodIntake, WeightSample} from "react-native-google-fit";
 ...
     addFoodExample(): Promise<void> {
@@ -650,6 +809,7 @@ import GoogleFit, {Nutrient, MealType, FoodIntake, WeightSample} from "react-nat
                     [Nutrient.POTASSIUM]: 422,
                 }
             } as FoodIntake;
+
             GoogleFit.saveFood(options, (err: boolean) => {
                 if (!err) {
                     resolve();
