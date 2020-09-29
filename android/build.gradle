@@ -48,7 +48,6 @@ dependencies {
         exclude group: 'com.android.support'
     }
     implementation "com.android.support:appcompat-v7:${safeExtGet('supportLibVersion', '27.0.0')}"
-    //PepUp use google play services version 16+
-    implementation 'com.google.android.gms:play-services-auth:16.0.1'
-    implementation 'com.google.android.gms:play-services-fitness:16.0.0'
+    implementation "com.google.android.gms:play-services-auth:${safeExtGet('authVersion', '+')}"
+    implementation "com.google.android.gms:play-services-fitness:${safeExtGet('fitnessVersion', '+')}"
 }
