@@ -12,8 +12,8 @@
 package com.reactnative.googlefit;
 
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.util.Log;
 
 import androidx.annotation.RequiresApi;
@@ -77,7 +77,6 @@ public class SleepHistory {
         this.googleFitManager = googleFitManager;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
     public void getSleepData(double startDate, double endDate, final Callback errorCallback, final Callback successCallback) {
         SessionReadRequest request = new SessionReadRequest.Builder()
                 .readSessionsFromAllApps()
@@ -91,7 +90,11 @@ public class SleepHistory {
                 .addOnSuccessListener(new OnSuccessListener<SessionReadResponse>() {
                     @Override
                     public void onSuccess(SessionReadResponse response) {
-                        List<Object> sleepSessions = response.getSessions()
+                        List<Session> sleepSessions = response.getSessions();
+
+                        // APIレベル27以上の時は取得結果のフィルタリングを行う必要があります
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { 
+                            sleepSessions
                             .stream()
                             .filter(new Predicate<Session>() {
                                 @Override
@@ -101,6 +104,7 @@ public class SleepHistory {
                                 }
                             })
                             .collect(Collectors.toList());
+                        }
 
                         WritableArray sleep = Arguments.createArray();
 
