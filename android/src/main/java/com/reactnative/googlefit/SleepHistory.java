@@ -54,6 +54,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.text.SimpleDateFormat;
@@ -91,31 +92,11 @@ public class SleepHistory {
                     @Override
                     public void onSuccess(SessionReadResponse response) {
                         List<Session> sleepSessions = response.getSessions();
-
-                        // APIレベル27以上の時は取得結果のフィルタリングを行う必要があります
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) { 
-                            sleepSessions
-                            .stream()
-                            .filter(new Predicate<Session>() {
-                                @Override
-                                public boolean test(Session s) {
-                                    Log.i(TAG, "Activity found: " + s.getActivity());
-                                    return s.getActivity().equals(FitnessActivities.SLEEP);
-                                }
-                            })
-                            .collect(Collectors.toList());
-                        }
-
                         WritableArray sleep = Arguments.createArray();
 
-                        for (Object session : sleepSessions) {
-                            List<DataSet> dataSets = response.getDataSet((Session) session);
-
-                            for (DataSet dataSet : dataSets) {
-                                processDataSet(dataSet, (Session) session, sleep);
-                            }
+                        for (Session session : sleepSessions) {
+                            processDataSet(session, sleep);
                         }
-
                         successCallback.invoke(sleep);
                     }
                 })
@@ -140,15 +121,30 @@ public class SleepHistory {
         GoogleSignIn.requestPermissions(this.mReactContext.getCurrentActivity(), sleepErrorCode, account, fitnessOptions);
     }
 
-    private void processDataSet(DataSet dataSet, Session session, WritableArray map) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        dateFormat.setTimeZone(TimeZone.getDefault());
+    private void processDataSet(Session session, WritableArray map) {
+        DateFormat dateFormat = DateFormat.getDateInstance();
+        DateFormat timeFormat = DateFormat.getTimeInstance();
+        Format formatter = new SimpleDateFormat("EEE");
 
-        for (DataPoint dp : dataSet.getDataPoints()) {
+        String activity = session.getActivity();
+        Log.i(TAG, "\tActivity: " + activity);
+        if(activity.equals(FitnessActivities.SLEEP)){
+            long startTime = session.getStartTime(TimeUnit.MILLISECONDS);
+            long endTime = session.getEndTime(TimeUnit.MILLISECONDS);
+            Double duration = new Double((endTime - startTime) / 1000 / 60);
+            String day = formatter.format(new Date(startTime));
+
+            Log.i(TAG, "\tData point:");
+            Log.i(TAG, "\tType: " + session.getName());
+            Log.i(TAG, "\tStart: " + dateFormat.format(startTime) + " " + timeFormat.format(startTime));
+            Log.i(TAG, "\tEnd: " + dateFormat.format(endTime) + " " + timeFormat.format(endTime));
+            Log.i(TAG, "\tDay: " + day);
+
             WritableMap sleepMap = Arguments.createMap();
-            sleepMap.putString("value", dp.getValue(Field.FIELD_ACTIVITY).asActivity());
-            sleepMap.putString("startDate", dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
-            sleepMap.putString("endDate", dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)));
+            sleepMap.putString("day", day);
+            sleepMap.putDouble("startDate", startTime);
+            sleepMap.putDouble("endDate", endTime);
+            sleepMap.putDouble("value", duration.intValue());
             map.pushMap(sleepMap);
         }
     }
