@@ -86,7 +86,7 @@ public class BodyHistory {
 
             readRequestBuilder
                 .read(DataType.TYPE_WEIGHT)
-                .setLimit(3000)
+                .setLimit(3000);
 
         } else {
             readRequestBuilder.read(this.dataType);
