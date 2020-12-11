@@ -86,6 +86,7 @@ public class BodyHistory {
 
             readRequestBuilder
                 .read(DataType.TYPE_WEIGHT)
+                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
                 .setLimit(3000);
 
         } else {
@@ -241,30 +242,21 @@ public class BodyHistory {
         //Log.i(TAG, "Data returned for Data type: " + dataSet.getDataType().getName());
         Format formatter = new SimpleDateFormat("EEE");
 
-        WritableMap stepMap = Arguments.createMap();
-
         for (DataPoint dp : dataSet.getDataPoints()) {
+            WritableMap stepMap = Arguments.createMap();
             String day = formatter.format(new Date(dp.getStartTime(TimeUnit.MILLISECONDS)));
+            int i = 0;
 
-            stepMap.putString("day", day);
-            stepMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
-            stepMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
+            for(Field field : dp.getDataType().getFields()) {
+                i++;
+                if (i > 1) continue;
+                stepMap.putString("day", day);
+                stepMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
+                stepMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
+                stepMap.putDouble("value", dp.getValue(field).asFloat());
 
-            // When there is a short interval between weight readings (< 1 hour or so), some phones e.g.
-            // Galaxy S5 use the average of the readings, whereas other phones e.g. Huawei P9 Lite use the
-            // most recent of the bunch (this might be related to Android versions - 6.0.1 vs 7.0 in this
-            // example for former and latter)
-            //
-            // For aggregated weight summary, only the min, max and average values are available (i.e. the
-            // most recent sample is not an option), so use average value to maximise the match between values
-            // returned here and values as reported by Google Fit app
-            if (this.dataType == DataType.TYPE_WEIGHT) {
-                stepMap.putDouble("value", dp.getValue(Field.FIELD_WEIGHT).asFloat());
-            } else {
-                stepMap.putDouble("value", dp.getValue(Field.FIELD_HEIGHT).asFloat());
+                map.pushMap(stepMap);
             }
         }
-        map.pushMap(stepMap);
     }
-
 }
