@@ -57,6 +57,7 @@ public class BodyFatPercentageHistory {
 
         DataReadRequest readRequest = new DataReadRequest.Builder()
                 .read(DataType.TYPE_BODY_FAT_PERCENTAGE)
+                .setLimit(3000)
                 .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
                 .enableServerQueries()
                 .build();

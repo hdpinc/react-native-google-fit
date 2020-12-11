@@ -85,8 +85,9 @@ public class BodyHistory {
             bucketSizeMillis = Math.max(bucketSizeMillis, 60 * 1000);
 
             readRequestBuilder
-                .aggregate(DataType.TYPE_WEIGHT, DataType.AGGREGATE_WEIGHT_SUMMARY)
-                .bucketByTime((int)bucketSizeMillis, TimeUnit.MILLISECONDS);
+                .read(DataType.TYPE_WEIGHT)
+                .setLimit(3000)
+
         } else {
             readRequestBuilder.read(this.dataType);
             readRequestBuilder.setLimit(1); // need only one height, since it's unchangable
@@ -258,7 +259,7 @@ public class BodyHistory {
             // most recent sample is not an option), so use average value to maximise the match between values
             // returned here and values as reported by Google Fit app
             if (this.dataType == DataType.TYPE_WEIGHT) {
-                stepMap.putDouble("value", dp.getValue(Field.FIELD_AVERAGE).asFloat());
+                stepMap.putDouble("value", dp.getValue(Field.FIELD_WEIGHT).asFloat());
             } else {
                 stepMap.putDouble("value", dp.getValue(Field.FIELD_HEIGHT).asFloat());
             }
