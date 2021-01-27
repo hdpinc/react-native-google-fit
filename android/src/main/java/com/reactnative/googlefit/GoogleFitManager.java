@@ -12,12 +12,13 @@ package com.reactnative.googlefit;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.util.Log;
 import java.util.ArrayList;
 
@@ -49,7 +50,6 @@ public class GoogleFitManager implements
     private Activity mActivity;
 
     private DistanceHistory distanceHistory;
-    private SleepHistory sleepHistory;
     private BodyFatPercentageHistory bodyFatPercentageHistory;
     private StepHistory stepHistory;
     private BodyHistory bodyHistory;
@@ -60,6 +60,8 @@ public class GoogleFitManager implements
     private StepSensor stepSensor;
     private RecordingApi recordingApi;
     private ActivityHistory activityHistory;
+    private HydrationHistory hydrationHistory;
+    private SleepHistory sleepHistory;
 
     private static final String TAG = "RNGoogleFit";
 
@@ -76,12 +78,13 @@ public class GoogleFitManager implements
         this.bodyHistory = new BodyHistory(mReactContext, this);
         this.heartrateHistory = new HeartrateHistory(mReactContext, this);
         this.distanceHistory = new DistanceHistory(mReactContext, this);
-        this.sleepHistory = new SleepHistory(mReactContext, this);
         this.bodyFatPercentageHistory = new BodyFatPercentageHistory(mReactContext, this);
         this.calorieHistory = new CalorieHistory(mReactContext, this);
         this.nutritionHistory = new NutritionHistory(mReactContext, this);
         this.recordingApi = new RecordingApi(mReactContext, this);
         this.activityHistory = new ActivityHistory(mReactContext, this);
+        this.hydrationHistory = new HydrationHistory(mReactContext, this);
+        this.sleepHistory = new SleepHistory(mReactContext, this);
         //        this.stepSensor = new StepSensor(mReactContext, activity);
     }
 
@@ -113,9 +116,6 @@ public class GoogleFitManager implements
         return distanceHistory;
     }
 
-    public SleepHistory getSleepHistory() {
-        return sleepHistory;
-    }
 
     public BodyFatPercentageHistory getBodyFatPercentageHistory() {
         return bodyFatPercentageHistory;
@@ -131,6 +131,10 @@ public class GoogleFitManager implements
     public CalorieHistory getCalorieHistory() { return calorieHistory; }
 
     public NutritionHistory getNutritionHistory() { return nutritionHistory; }
+
+    public HydrationHistory getHydrationHistory() { return hydrationHistory; }
+
+    public SleepHistory getSleepHistory() { return sleepHistory; }
 
     public void authorize(ArrayList<String> userScopes) {
         final ReactContext mReactContext = this.mReactContext;
@@ -193,10 +197,17 @@ public class GoogleFitManager implements
         mApiClient.connect();
     }
 
-    public void  disconnect() {
+    public void  disconnect(Context context) {
+        GoogleSignInOptions options = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+        GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(context, options);
+
         GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
         Fitness.getConfigClient(mReactContext, gsa).disableFit();
         mApiClient.disconnect();
+
+        googleSignInClient.signOut();
     }
 
     public boolean isAuthorized() {
@@ -282,6 +293,9 @@ public class GoogleFitManager implements
         Bundle args = new Bundle();
         args.putInt(AUTH_PENDING, errorCode);
         dialogFragment.setArguments(args);
-        dialogFragment.show(mActivity.getFragmentManager(), "errordialog");
+
+        mActivity.getFragmentManager().beginTransaction()
+                .add(dialogFragment, "errordialog")
+                .commitAllowingStateLoss();
     }
 }

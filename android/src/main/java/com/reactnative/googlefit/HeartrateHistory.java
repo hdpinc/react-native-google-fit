@@ -46,7 +46,7 @@ public class HeartrateHistory {
     private DataSet Dataset;
     private DataType dataType;
 
-    private static final String TAG = "Weights History";
+    private static final String TAG = "Heart Rate History";
 
     public HeartrateHistory(ReactContext reactContext, GoogleFitManager googleFitManager, DataType dataType){
         this.mReactContext = reactContext;
@@ -55,24 +55,20 @@ public class HeartrateHistory {
     }
 
     public HeartrateHistory(ReactContext reactContext, GoogleFitManager googleFitManager){
-        this(reactContext, googleFitManager, DataType.TYPE_WEIGHT);
+        this(reactContext, googleFitManager, DataType.TYPE_HEART_RATE_BPM);
     }
 
     public void setDataType(DataType dataType) {
         this.dataType = dataType;
     }
 
-    public ReadableArray getHistory(long startTime, long endTime) {
-        DateFormat dateFormat = DateFormat.getDateInstance();
-        // for height we need to take time, since GoogleFit foundation - https://stackoverflow.com/questions/28482176/read-the-height-in-googlefit-in-android
-
+    public ReadableArray getHistory(long startTime, long endTime, int bucketInterval, String bucketUnit) {
         DataReadRequest.Builder readRequestBuilder = new DataReadRequest.Builder()
                 .read(this.dataType)
-                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS);
+                .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
+                .setLimit(3000);
         if (this.dataType == HealthDataTypes.TYPE_BLOOD_PRESSURE) {
-            readRequestBuilder.bucketByTime(1, TimeUnit.DAYS);
-        } else {
-            readRequestBuilder.setLimit(3000); // need only one height, since it's unchangable
+            readRequestBuilder.bucketByTime(bucketInterval, HelperUtil.processBucketUnit(bucketUnit));
         }
 
         DataReadRequest readRequest = readRequestBuilder.build();
@@ -100,10 +96,12 @@ public class HeartrateHistory {
     }
 
     public boolean save(ReadableMap sample) {
+        // TODO: how to save blood pressure?
+
         this.Dataset = createDataForRequest(
-                this.dataType,    // for height, it would be DataType.TYPE_HEIGHT
+                this.dataType,    // for heart rate, it would be DataType.TYPE_HEART_RATE_BPM
                 DataSource.TYPE_RAW,
-                sample.getDouble("value"),                  // weight in kgs, height in metrs
+                sample.getDouble("value"),                  // heart rate in bmp
                 (long)sample.getDouble("date"),              // start time
                 (long)sample.getDouble("date"),                // end time
                 TimeUnit.MILLISECONDS                // Time Unit, for example, TimeUnit.MILLISECONDS
@@ -116,44 +114,9 @@ public class HeartrateHistory {
     public boolean delete(ReadableMap sample) {
         long endTime = (long) sample.getDouble("endTime");
         long startTime = (long) sample.getDouble("startTime");
-        new DeleteDataTask(startTime, endTime, this.dataType).execute();
+        new DeleteDataHelper(startTime, endTime, this.dataType, googleFitManager).execute();
         return true;
     }
-
-    //Async fit data delete
-    private class DeleteDataTask extends AsyncTask<Void, Void, Void> {
-
-        long startTime;
-        long endTime;
-        DataType dataType;
-
-        DeleteDataTask(long startTime, long endTime, DataType dataType) {
-            this.startTime = startTime;
-            this.endTime = endTime;
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-
-            DataDeleteRequest request = new DataDeleteRequest.Builder()
-                    .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-                    .addDataType(this.dataType)
-                    .build();
-
-            com.google.android.gms.common.api.Status insertStatus =
-                    Fitness.HistoryApi.deleteData(googleFitManager.getGoogleApiClient(), request)
-                            .await(1, TimeUnit.MINUTES);
-
-            if (insertStatus.isSuccess()) {
-                Log.w("myLog", "+Successfully deleted data.");
-            } else {
-                Log.w("myLog", "+Failed to delete data.");
-            }
-
-            return null;
-        }
-    }
-
 
     //Async fit data insert
     private class InsertAndVerifyDataTask extends AsyncTask<Void, Void, Void> {
@@ -237,8 +200,8 @@ public class HeartrateHistory {
                 stepMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
                 stepMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
                 if (this.dataType == HealthDataTypes.TYPE_BLOOD_PRESSURE) {
-                    stepMap.putDouble("value2", dp.getValue(HealthFields.FIELD_BLOOD_PRESSURE_DIASTOLIC).asFloat());
-                    stepMap.putDouble("value", dp.getValue(HealthFields.FIELD_BLOOD_PRESSURE_SYSTOLIC).asFloat());
+                    stepMap.putDouble("diastolic", dp.getValue(HealthFields.FIELD_BLOOD_PRESSURE_DIASTOLIC).asFloat());
+                    stepMap.putDouble("systolic", dp.getValue(HealthFields.FIELD_BLOOD_PRESSURE_SYSTOLIC).asFloat());
                 } else {
                   stepMap.putDouble("value", dp.getValue(field).asFloat());
                 }

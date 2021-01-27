@@ -1,5 +1,7 @@
 # react-native-google-fit
 
+[Gitter Group](https://gitter.im/React-native-google-fit/community) - ask questions, answer questions!
+
 [![npm version](https://badge.fury.io/js/react-native-google-fit.svg)](https://badge.fury.io/js/react-native-google-fit) ![Downloads](https://img.shields.io/npm/dm/react-native-google-fit.svg)
 
 A React Native bridge module for interacting with Google Fit
@@ -10,6 +12,10 @@ A React Native bridge module for interacting with Google Fit
 - [Example app](https://github.com/StasDoskalenko/react-native-google-fit-example)
 - [F.A.Q.](/docs/FAQ.md)
 
+### Requirement
+If you didn't set `fitnessVersion` manually, you can simply skip this part.  
+Note that 0.16.1 require fitness version above 20.0.0  
+Please read https://developers.google.com/fit/improvements why we made the changes.
 
 ### USAGE
 
@@ -17,12 +23,28 @@ A React Native bridge module for interacting with Google Fit
 
 2. Authorize:
 
+    To check whethere GoogleFit is already authorized, simply use a function, then you can refer to the static property GoogleFit.isAuthorized
+    ```
+        GoogleFit.checkIsAuthorized().then(() => {
+            console.log(GoogleFit.isAuthorized) // Then you can simply refer to `GoogleFit.isAuthorized` boolean.
+        })
+    ```
+    
+    or with async/await syntax
+    ```
+        await checkIsAuthorized();
+        console.log(GoogleFit.isAuthorized);
+    ```
+   
+    
     ```javascript
     // The list of available scopes inside of src/scopes.js file
     const options = {
       scopes: [
-        Scopes.FITNESS_ACTIVITY_READ_WRITE,
-        Scopes.FITNESS_BODY_READ_WRITE,
+        Scopes.FITNESS_ACTIVITY_READ,
+        Scopes.FITNESS_ACTIVITY_WRITE,
+        Scopes.FITNESS_BODY_READ,
+        Scopes.FITNESS_BODY_WRITE,
       ],
     }
     GoogleFit.authorize(options)
@@ -43,6 +65,9 @@ A React Native bridge module for interacting with Google Fit
       // Process data from Google Fit Recording API (no google fit app needed)
     });
     ```
+
+    **Note**: If you are using the recording API for location/ distance data, you have to [request](https://developer.android.com/training/location/permissions) the `location-permission` in your app's `AndroidManifest.xml`:
+    `<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />`
     
     Alternatively you can use event listeners (deprecated)
     ```javascript
@@ -58,16 +83,32 @@ A React Native bridge module for interacting with Google Fit
 3. Retrieve Steps For Period
 
     ```javascript
-    const options = {
+    const opt = {
       startDate: "2017-01-01T00:00:17.971Z", // required ISO8601Timestamp
-      endDate: new Date().toISOString() // required ISO8601Timestamp
+      endDate: new Date().toISOString(), // required ISO8601Timestamp
+      bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+      bucketInterval: 1, // optional - default 1. 
     };
     
-    GoogleFit.getDailyStepCountSamples(options)
+    GoogleFit.getDailyStepCountSamples(opt)
      .then((res) => {
          console.log('Daily steps >>> ', res)
      })
-     .catch((err) => {console.warn(err)})
+     .catch((err) => {console.warn(err)});
+
+    // or with async/await syntax
+    async function fetchData() {
+      const res = await GoogleFit.getDailyStepCountSamples(opt)；
+      console.log(res);
+    }
+    
+    // shortcut functions, 
+    // return weekly or daily steps of given date
+    // all params are optional, using new Date() without given date, 
+    // adjustment is 0 by default, determine the first day of week, 0 == Sunday, 1==Monday, etc.
+    GoogleFit.getDailySteps(date).then().catch()
+    GoogleFit.getWeeklySteps(date, adjustment).then().catch()
+     
     ```
 
     **Response:**
@@ -95,6 +136,38 @@ A React Native bridge module for interacting with Google Fit
       { source: "com.xiaomi.hm.health", steps: [] }
     ];
     ```
+   **Note:** bucket Config for step reflects on `rawStep` entity.
+   
+   **Response:**
+   ```javascript
+   // {bucketInterval: 15, bucketUnit: 'MINUTE'}
+   [
+      { source: "com.google.android.gms:estimated_steps", 
+        steps: [
+        {
+          "date":"2019-07-06","value": 135
+        },
+        ],
+        rawSteps: [
+          {"endDate": 1594012101944, "startDate": 1594012041944, "steps": 13}, 
+          {"endDate": 1594020600000, "startDate": 1594020596034, "steps": 0}, 
+          {"endDate": 1594020693175, "startDate": 1594020600000, "steps": 24}, 
+          {"endDate": 1594068898912, "startDate": 1594068777409, "steps": 53}, 
+          {"endDate": 1594073158830, "startDate": 1594073066166, "steps": 45}
+        ]
+      },
+    ]
+    
+    // {bucketInterval: 1, bucketUnit: 'DAY'}
+    [
+        { source: "com.google.android.gms:estimated_steps",
+            ...
+          rawSteps: [
+           {"endDate": 1594073158830, "startDate": 1594012041944, "steps": 135}
+          ]
+        }
+    ]
+    ```
 
 4. Retrieve Weights
 
@@ -103,12 +176,19 @@ A React Native bridge module for interacting with Google Fit
       unit: "pound", // required; default 'kg'
       startDate: "2017-01-01T00:00:17.971Z", // required
       endDate: new Date().toISOString(), // required
+      bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+      bucketInterval: 1, // optional - default 1. 
       ascending: false // optional; default false
     };
     
-    GoogleFit.getWeightSamples(opt, (err, res) => {
-      console.log(res);
+    GoogleFit.getWeightSamples(opt).then((res)=> {
+      console.log(res)
     });
+    // or with async/await syntax
+    async function fetchData() {
+      const res = await GoogleFit.getWeightSamples(opt)；
+      console.log(res);
+    }
     ```
 
     **Response:**
@@ -116,12 +196,14 @@ A React Native bridge module for interacting with Google Fit
     ```javascript
     [
       {
+        "addedBy": "app_package_name",
         "value":72,
         "endDate":"2019-06-29T15:02:23.413Z",
         "startDate":"2019-06-29T15:02:23.413Z",
         "day":"Sat"
       },
       {
+        "addedBy": "app_package_name",
         "value":72.4000015258789,
         "endDate":"2019-07-26T08:06:42.903Z",
         "startDate":"2019-07-26T08:06:42.903Z",
@@ -138,7 +220,7 @@ A React Native bridge module for interacting with Google Fit
       endDate: new Date().toISOString(), // required
     };
     
-    GoogleFit.getHeightSamples(opt, (err, res) => {
+    GoogleFit.getHeightSamples(opt).then((res)=> {
       console.log(res);
     });
     ```
@@ -148,7 +230,8 @@ A React Native bridge module for interacting with Google Fit
     ```javascript
     [
       {
-        "value":1.7699999809265137,
+        "addedBy": "app_package_name",
+        "value":1.7699999809265137, // Meter
         "endDate":"2019-06-29T15:02:23.409Z",
         "startDate":"2019-06-29T15:02:23.409Z",
         "day":"Sat"
@@ -175,13 +258,18 @@ A React Native bridge module for interacting with Google Fit
     const options = {
       startDate: "2017-01-01T00:00:17.971Z", // required
       endDate: new Date().toISOString(), // required
+      bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+      bucketInterval: 1, // optional - default 1. 
     }
-    const callback = ((error, response) => {
-      console.log(error, response)
-    });
 
-    GoogleFit.getHeartRateSamples(options, callback)
-    GoogleFit.getBloodPressureSamples(options, callback)
+    async function fetchData() {
+      const heartrate = await GoogleFit.getHeartRateSamples(opt)；
+      console.log(heartrate);
+
+      const bloodpressure = await GoogleFit.getBloodPressureSamples(opt)；
+      console.log(bloodpressure);
+    }
+
     ```
 
     **Response:**
@@ -200,8 +288,8 @@ A React Native bridge module for interacting with Google Fit
     // blood pressure
     [
       {
-        "value":120,
-        "value2":80,
+        "systolic":120,
+        "diastolic":80,
         "endDate":"2019-07-26T08:39:28.493Z",
         "startDate":"1970-01-01T00:00:00.000Z",
         "day":"Thu"
@@ -211,13 +299,21 @@ A React Native bridge module for interacting with Google Fit
 
 8. Get all activities
     ```javascript
-      let options = {
-        startDate: new Date(2018, 9, 17).valueOf(), // simply outputs the number of milliseconds since the Unix Epoch
-        endDate: new Date(2018, 9, 18).valueOf()
+      let opt = {
+        startDate: "2017-01-01T00:00:17.971Z", // required
+        endDate: new Date().toISOString(), // required
+        bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+        bucketInterval: 1, // optional - default 1. 
       };
-      GoogleFit.getActivitySamples(options, (err, res) => {
-        console.log(err, res)
+
+      GoogleFit.getActivitySamples(opt).then((res)=> {
+        console.log(res)
       });
+      // or with async/await syntax
+      async function fetchData() {
+        const res = await GoogleFit.getActivitySamples(opt)；
+        console.log(res);
+      }
     ```
 
       **Response:**
@@ -264,9 +360,11 @@ A React Native bridge module for interacting with Google Fit
         startDate: "2017-01-01T00:00:17.971Z", // required
         endDate: new Date().toISOString(), // required
         basalCalculation: true, // optional, to calculate or not basalAVG over the week
+        bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+        bucketInterval: 1, // optional - default 1. 
       };
 
-      GoogleFit.getDailyCalorieSamples(opt, (err, res) => {
+      GoogleFit.getDailyCalorieSamples(opt).then((res) => {
         console.log(res);
       });
     ```
@@ -295,11 +393,19 @@ A React Native bridge module for interacting with Google Fit
       const opt = {
         startDate: "2017-01-01T00:00:17.971Z", // required
         endDate: new Date().toISOString(), // required
+        bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+        bucketInterval: 1, // optional - default 1. 
       };
 
-      GoogleFit.getDailyDistanceSamples(opt, (err, res) => {
+      GoogleFit.getDailyDistanceSamples(opt).then((res)=>{
         console.log(res);
       });
+      
+     // or with async/await syntax
+      async function fetchData() {
+        const res = await GoogleFit.getDailyDistanceSamples(opt)；
+        console.log(res);
+      }
     ```
 
     **Response:**
@@ -322,10 +428,13 @@ A React Native bridge module for interacting with Google Fit
     ```
 
 11. Retrieve Daily Nutrition Data for Period:
+    You need to add `FITNESS_NUTRITION_READ` scope to your authorization to work with nutrition.
     ```javascript
       const opt = {
         startDate: "2017-01-01T00:00:17.971Z", // required
         endDate: new Date().toISOString(), // required
+        bucketUnit: "DAY", // optional - default "DAY". Valid values: "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY"
+        bucketInterval: 1, // optional - default 1. 
       };
 
       GoogleFit.getDailyNutritionSamples(opt, (err, res) => {
@@ -348,7 +457,178 @@ A React Native bridge module for interacting with Google Fit
     ]
     ```
 
-12. Other methods:
+12. Save Food
+    You need to add `FITNESS_NUTRITION_WRITE` scope to your authorization to work with nutrition.
+    ```javascript
+      const opt = {
+        mealType: MealType.BREAKFAST,
+        foodName: "banana",
+        date: moment().format(), //equals to new Date().toISOString()
+        nutrients: {
+            [Nutrient.TOTAL_FAT]: 0.4,
+            [Nutrient.SODIUM]: 1,
+            [Nutrient.SATURATED_FAT]: 0.1,
+            [Nutrient.PROTEIN]: 1.3,
+            [Nutrient.TOTAL_CARBS]: 27.0,
+            [Nutrient.CHOLESTEROL]: 0,
+            [Nutrient.CALORIES]: 105,
+            [Nutrient.SUGAR]: 14,
+            [Nutrient.DIETARY_FIBER]: 3.1,
+            [Nutrient.POTASSIUM]: 422,
+        }
+    } as FoodIntake;
+
+    GoogleFit.saveFood(opt, (err, res) => {
+      console.log(err, res);
+    })
+    ```
+
+
+13. Retrieve Hydration
+
+    You need to add `FITNESS_NUTRITION_WRITE` scope to your authorization to work with hydration.
+    ```javascript
+      const opt = {
+        startDate: '2020-01-05T00:00:17.971Z', // required
+        endDate = new Date().toISOString() // required
+      };
+
+    GoogleFit.getHydrationSamples(opt).then(res) => {
+      console.log(res);
+    });
+    ```
+
+    **Response:**
+
+    ```javascript
+    [
+      {
+        "addedBy": "app_package_name",
+        "date": "2020-02-01T00:00:00.000Z",
+        "waterConsumed": "0.225"
+      },
+      {
+        "addedBy": "app_package_name",
+        "date": "2020-02-02T00:00:00.000Z",
+        "waterConsumed": "0.325"
+      },
+    ]
+    ```
+
+14. Save Hydration
+
+    This method can update hydration data.
+    An app cannot update data inserted by other apps.
+
+    ```javascript
+    const hydrationArray = [
+      {
+        // recommand use moment().valueOf() or other alternatives since Date.parse() without specification can generate wrong date.
+        date: Date.parse('2020-02-01'), // required, timestamp  
+        waterConsumed: 0.225, // required, hydration data for a 0.225 liter drink of water
+      },
+      {
+        date: Date.parse('2020-02-02'),
+        waterConsumed: 0.325,
+      },
+    ];
+
+    GoogleFit.saveHydration(hydrationArray, (err, res) => {
+      if (err) throw "Cant save data to the Google Fit";
+    });
+    ```
+
+    Delete Hydration
+
+    An app cannot delete data inserted by other apps.
+    startDate and endDate MUST not be the same.
+
+    ```javascript
+    const options = {
+      startDate: '2020-01-01T12:33:18.873Z', // required, timestamp or ISO8601 string
+      endDate: new Date().toISOString(), // required, timestamp or ISO8601 string
+    };
+
+    GoogleFit.deleteHydration(options, (err, res) => {
+      console.log(res);
+    });
+    ```
+    
+15. Retrieve Sleep
+
+    You need to add `FITNESS_SLEEP_READ` scope to your authorization to work with sleep.
+    ```javascript
+    const opt = {
+      startDate: '2020-01-01T12:33:18.873Z', // required, timestamp or ISO8601 string
+      endDate: new Date().toISOString(), // required, timestamp or ISO8601 string
+    };
+
+    GoogleFit.getSleepSamples(opt).then((res) => {
+      console.log(res)
+    });
+    ```
+    **Response:**
+
+    ```javascript
+    [
+      { 
+        'addedBy': 'com.google.android.apps.fitness' 
+        'endDate': '2020-11-03T07:47:00.000Z',
+        'startDate': '2020-11-03T07:33:59.160Z',
+        // To understand what is granularity: https://developers.google.com/fit/scenarios/read-sleep-data
+        'granularity': [
+          {
+            'startDate': {
+              'sleepStage': 2,
+              'endDate': '2020-11-03T07:47:00.000Z',
+              'startDate': '2020-11-03T07:33:59.160Z',
+            }
+          }
+        ],
+      },
+      { 
+        'addedBy': 'com.google.android.apps.fitness',
+        'endDate': '2020-11-02T17:41:00.000Z',
+        'startDate': '2020-11-02T10:41:00.000Z',
+        'granularity': [],
+      },
+    ]
+    ```
+
+    Save Sleep
+
+    You need to add `FITNESS_SLEEP_READ` and `FITNESS_SLEEP_WRITE` scope to your authorization to save sleep.
+    To reduce the complexity of converting data type internally, 
+    `startDate` and `endDate` must be `number` in Epoch/Unix timestamp
+
+    Note: `identifier` must be a unique string
+    Read https://developers.google.com/fit/sessions, https://developer.android.com/training/articles/user-data-ids for more infos.
+
+    ```javascript
+      const opts: SleepSample = {
+        startDate: 1604052985000, 
+        endDate: 1604063785000, // or more general example parseInt(new Date().valueOf())
+        sessionName: "1604052985000-1604063785000:sleep-session",
+        identifier: "1604052985000-1604063785000:sleep-identifier", // warning: just an example, the string is probably not unique enough
+        description: "some description",
+        granularity: [
+          {
+            startDate: 1604052985000,
+            endDate: 1604056585000,
+            sleepStage: 4,
+          },
+          {
+            startDate: 1604056585000,
+            endDate: 1604060185000,
+            sleepStage: 5,
+          }
+        ]
+      }
+      const result = await GoogleFit.saveSleep(opts);
+      console.log(result); //either be true or error
+    ```
+
+16. Other methods:
 
     ```javascript
     observeSteps(callback); // On Step Changed Event
@@ -359,15 +639,13 @@ A React Native bridge module for interacting with Google Fit
     
     isEnabled(callback); // Checks is permissions granted
     
-    deleteWeight(options, callback); // method to delete weights by options (same as in save weights)
+    deleteWeight(options, callback); // method to delete weights by options (same as in delete hydration)
  
     openFit(); //method to open google fit app
     
     saveHeight(options, callback);
  
-    deleteHeight(options, callback);
- 
-    deleteWeight(options, callback);
+    deleteHeight(options, callback); // method to delete heights by options (same as in delete hydration)
  
     disconnect(); // Closes the connection to Google Play services.
     ```
