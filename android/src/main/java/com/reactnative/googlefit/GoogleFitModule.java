@@ -193,7 +193,7 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
                                             double endDate,
                                             Callback errorCallback,
                                             Callback successCallback) {
-        
+
         try {
             successCallback.invoke(mGoogleFitManager.getBodyFatPercentageHistory().readByDate((long)startDate, (long)endDate));
         } catch (IllegalViewOperationException e) {
@@ -433,7 +433,7 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     @ReactMethod
     public void getSleepSamples(double startDate, double endDate, Promise promise) {
         try {
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N){           
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N){
                 mGoogleFitManager.getSleepHistory().getSleepData((long)startDate, (long)endDate, promise);
             }else{
                 mGoogleFitManager.getSleepHistory().getSleepDataOldOs((long)startDate, (long)endDate, promise);

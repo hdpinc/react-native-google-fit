@@ -562,7 +562,7 @@ class RNGoogleFit {
       endDate
     );
 
-    return prepareResponse(result, "addedBy");
+    return prepareResponse(result, "value");
   }
 
   saveSleep = async (options) => {

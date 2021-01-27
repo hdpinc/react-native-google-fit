@@ -42,6 +42,8 @@ import com.google.android.gms.fitness.request.SessionReadRequest;
 import com.google.android.gms.fitness.result.SessionReadResponse;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.common.Scopes;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -69,8 +71,6 @@ public class SleepHistory {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     public void getSleepData(double startDate, double endDate, final Promise promise) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        dateFormat.setTimeZone(TimeZone.getDefault());
 
         SessionReadRequest request = new SessionReadRequest.Builder()
                 .readSessionsFromAllApps()
@@ -112,44 +112,43 @@ public class SleepHistory {
                 });
     }
 
-    public void getSleepDataOldOs(long startTime, long endTime, final Promise promise) {
-        SessionReadRequest readRequest = new SessionReadRequest.Builder()
-        .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-        .enableServerQueries()
-        .readSessionsFromAllApps()
-        .read(DataType.TYPE_ACTIVITY_SEGMENT)
-        .build();
+    public void getSleepDataOldOs(long startDate, long endDate, final Promise promise) {
+        SessionReadRequest request = new SessionReadRequest.Builder()
+                .readSessionsFromAllApps()
+                .includeSleepSessions()
+                .read(DataType.TYPE_SLEEP_SEGMENT)
+                .setTimeInterval(startDate, endDate, TimeUnit.MILLISECONDS)
+                .build();
 
         GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(this.mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
-        Task<SessionReadResponse> response = Fitness.getSessionsClient(this.mReactContext, gsa).readSession(readRequest);
-        WritableArray map = Arguments.createArray();
 
-        try {
-            SessionReadResponse sessionReadResponse = Tasks.await(response, 1, TimeUnit.MINUTES);
-            List<Session> sessions = sessionReadResponse.getSessions();
-            for (Session session : sessions) {
-                Log.i(TAG, "Session start");
-                processDataSet(session,map);
-            }
-            promise.resolve(map);
+        Fitness.getSessionsClient(this.mReactContext, gsa)
+                .readSession(request)
+                .addOnSuccessListener(new OnSuccessListener<SessionReadResponse>() {
+                    @Override
+                    public void onSuccess(SessionReadResponse response) {
+                        List<Session> sleepSessions = response.getSessions();
+                        WritableArray sleepSample = Arguments.createArray();
 
-        } catch (ExecutionException e) {
-            Log.i(TAG, e.toString());
-             promise.reject(e)
-        } catch (InterruptedException e) {
-            Log.i(TAG, e.toString());
-             promise.reject(e)
-        } catch (TimeoutException e) {
-            Log.i(TAG, e.toString());
-             promise.reject(e)
-        }
+                        for (Session session : sleepSessions) {
+                            Log.i(TAG, "Session start");
+                            processDataSet(session,sleepSample);
+                        }
+                        promise.resolve(sleepSample);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        promise.reject(e);
+                    }
+                });
 
     }
 
     private void processDataSet(Session session, WritableArray map) {
-        DateFormat dateFormat = DateFormat.getDateInstance();
-        DateFormat timeFormat = DateFormat.getTimeInstance();
-        Format formatter = new SimpleDateFormat("EEE");
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        dateFormat.setTimeZone(TimeZone.getDefault());
 
         String activity = session.getActivity();
         Log.i(TAG, "\tActivity: " + activity);
@@ -157,18 +156,16 @@ public class SleepHistory {
             long startTime = session.getStartTime(TimeUnit.MILLISECONDS);
             long endTime = session.getEndTime(TimeUnit.MILLISECONDS);
             Double duration = new Double((endTime - startTime) / 1000 / 60);
-            String day = formatter.format(new Date(startTime));
+
 
             Log.i(TAG, "\tData point:");
             Log.i(TAG, "\tType: " + session.getName());
-            Log.i(TAG, "\tStart: " + dateFormat.format(startTime) + " " + timeFormat.format(startTime));
-            Log.i(TAG, "\tEnd: " + dateFormat.format(endTime) + " " + timeFormat.format(endTime));
-            Log.i(TAG, "\tDay: " + day);
+            Log.i(TAG, "\tStart: " +  dateFormat.format(startTime));
+            Log.i(TAG, "\tEnd: " + dateFormat.format(endTime));
 
             WritableMap sleepMap = Arguments.createMap();
-            sleepMap.putString("day", day);
-            sleepMap.putDouble("startDate", startTime);
-            sleepMap.putDouble("endDate", endTime);
+            sleepMap.putString("startDate", dateFormat.format(startTime));
+            sleepMap.putString("endDate", dateFormat.format(endTime));
             sleepMap.putDouble("value", duration.intValue());
             map.pushMap(sleepMap);
         }
