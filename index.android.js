@@ -544,6 +544,7 @@ class RNGoogleFit {
         callback(msg, false)
       },
       res => {
+        callback(false, res)
       }
     )
   }
