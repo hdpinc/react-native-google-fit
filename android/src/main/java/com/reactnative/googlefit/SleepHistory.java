@@ -98,21 +98,8 @@ public class SleepHistory {
                         WritableArray sleepSample = Arguments.createArray();
 
                         for (Session session : sleepSessions) {
-                            WritableMap sleepData = Arguments.createMap();
-
-                            sleepData.putString("addedBy", session.getAppPackageName());
-                            sleepData.putString("startDate", dateFormat.format(session.getStartTime(TimeUnit.MILLISECONDS)));
-                            sleepData.putString("endDate", dateFormat.format(session.getEndTime(TimeUnit.MILLISECONDS)));
-
-                            // If the sleep session has finer granularity sub-components, extract them:
-                            List<DataSet> dataSets = response.getDataSet(session);
-                            WritableArray granularity = Arguments.createArray();
-                            for (DataSet dataSet : dataSets) {
-                                processDataSet(dataSet, granularity);
-                            }
-                            sleepData.putArray("granularity", granularity);
-
-                            sleepSample.pushMap(sleepData);
+                            Log.i(TAG, "Session start");
+                            processDataSet(session,sleepSample);
                         }
                         promise.resolve(sleepSample);
                     }
@@ -125,17 +112,65 @@ public class SleepHistory {
                 });
     }
 
-    private void processDataSet(DataSet dataSet, WritableArray granularity) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        dateFormat.setTimeZone(TimeZone.getDefault());
-        for (DataPoint dp : dataSet.getDataPoints()) {
-            WritableMap sleepStage = Arguments.createMap();
+    public void getSleepDataOldOs(long startTime, long endTime, final Promise promise) {
+        SessionReadRequest readRequest = new SessionReadRequest.Builder()
+        .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
+        .enableServerQueries()
+        .readSessionsFromAllApps()
+        .read(DataType.TYPE_ACTIVITY_SEGMENT)
+        .build();
 
-            sleepStage.putInt("sleepStage", dp.getValue(Field.FIELD_SLEEP_SEGMENT_TYPE).asInt());
-            sleepStage.putString("startDate", dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
-            sleepStage.putString("endDate", dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)));
+        GoogleSignInAccount gsa = GoogleSignIn.getAccountForScopes(this.mReactContext, new Scope(Scopes.FITNESS_ACTIVITY_READ));
+        Task<SessionReadResponse> response = Fitness.getSessionsClient(this.mReactContext, gsa).readSession(readRequest);
+        WritableArray map = Arguments.createArray();
 
-            granularity.pushMap(sleepStage);
+        try {
+            SessionReadResponse sessionReadResponse = Tasks.await(response, 1, TimeUnit.MINUTES);
+            List<Session> sessions = sessionReadResponse.getSessions();
+            for (Session session : sessions) {
+                Log.i(TAG, "Session start");
+                processDataSet(session,map);
+            }
+            promise.resolve(map);
+
+        } catch (ExecutionException e) {
+            Log.i(TAG, e.toString());
+             promise.reject(e)
+        } catch (InterruptedException e) {
+            Log.i(TAG, e.toString());
+             promise.reject(e)
+        } catch (TimeoutException e) {
+            Log.i(TAG, e.toString());
+             promise.reject(e)
+        }
+
+    }
+
+    private void processDataSet(Session session, WritableArray map) {
+        DateFormat dateFormat = DateFormat.getDateInstance();
+        DateFormat timeFormat = DateFormat.getTimeInstance();
+        Format formatter = new SimpleDateFormat("EEE");
+
+        String activity = session.getActivity();
+        Log.i(TAG, "\tActivity: " + activity);
+        if(activity.equals(FitnessActivities.SLEEP)){
+            long startTime = session.getStartTime(TimeUnit.MILLISECONDS);
+            long endTime = session.getEndTime(TimeUnit.MILLISECONDS);
+            Double duration = new Double((endTime - startTime) / 1000 / 60);
+            String day = formatter.format(new Date(startTime));
+
+            Log.i(TAG, "\tData point:");
+            Log.i(TAG, "\tType: " + session.getName());
+            Log.i(TAG, "\tStart: " + dateFormat.format(startTime) + " " + timeFormat.format(startTime));
+            Log.i(TAG, "\tEnd: " + dateFormat.format(endTime) + " " + timeFormat.format(endTime));
+            Log.i(TAG, "\tDay: " + day);
+
+            WritableMap sleepMap = Arguments.createMap();
+            sleepMap.putString("day", day);
+            sleepMap.putDouble("startDate", startTime);
+            sleepMap.putDouble("endDate", endTime);
+            sleepMap.putDouble("value", duration.intValue());
+            map.pushMap(sleepMap);
         }
     }
 
