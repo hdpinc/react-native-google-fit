@@ -1,7 +1,19 @@
 ### Changelog:
 
 ```
+0.10.0  + Implement hydration
+        ~ Fix weight and height deletion
+        ~ Update typescript definitions
+
+0.9.17  ~ observeSteps fix (kudos to @nojas01)
+        ~ Fix disconnect method (kudos to @AylanBoscarino)
+        ~ better React Native 0.60 support (kudos to @spacekadet)
+
+0.9.15  + getUserInputSteps function (kudos @HelloCore)
+        + Retrieve Daily Nutrition Data (kudos @jguix) 
+
 0.9.13  + Improve weights granularity and always use FIELD_AVERAGE (@chrisgibbs44)
+
 0.9.12  ~ Update typescript definitions for Scoped Authorization
 
 0.9.11  ~ getDailyCalorieSamples, now includes basalCalculation: boolean flag
