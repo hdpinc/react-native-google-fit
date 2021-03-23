@@ -45,6 +45,7 @@ public class GoogleFitManager implements
     private ReactContext mReactContext;
     private GoogleApiClient mApiClient;
     private static final int REQUEST_OAUTH = 1001;
+    private static final int REQUEST_ADD_PERMISSION = 1002;
     private static final String AUTH_PENDING = "auth_state_pending";
     private static boolean mAuthInProgress = false;
     private Activity mActivity;
@@ -197,6 +198,17 @@ public class GoogleFitManager implements
         mApiClient.connect();
     }
 
+    public boolean hasPermission(String userScope) {
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this.mReactContext);
+        return GoogleSignIn.hasPermissions(account,new Scope(userScope));
+    }
+
+    public void requestPermission(String userScope) {
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this.mReactContext);
+        GoogleSignIn.requestPermissions(mActivity, REQUEST_ADD_PERMISSION, account, new Scope(userScope));
+        // この後同意ダイアログが表示されるユーザーの操作結果はonActivityResultでハンドリングする
+    }
+
     public void  disconnect(Context context) {
         GoogleSignInOptions options = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -254,6 +266,15 @@ public class GoogleFitManager implements
                 WritableMap map = Arguments.createMap();
                 map.putString("message", "" + "Authorization cancelled");
                 sendEvent(mReactContext, "GoogleFitAuthorizeFailure", map);
+            }
+        }else if(requestCode == REQUEST_ADD_PERMISSION){
+            if (resultCode == Activity.RESULT_OK) {
+                sendEvent(mReactContext, "GoogleFitAddPermissionSuccess",null);
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+                Log.e(TAG, "Authorization - Cancel");
+                WritableMap map = Arguments.createMap();
+                map.putString("message", "" + "Authorization cancelled");
+                sendEvent(mReactContext, "GoogleFitAddPermissionFailure", map);
             }
         }
     }

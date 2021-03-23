@@ -55,6 +55,30 @@ class RNGoogleFit {
     }
   }
 
+  hasPermission = async (scope) => {
+    return await googleFit.hasPermission(scope)
+  }
+
+  requestPermission = async (scope) => {
+    const successResponse = { success: true }
+    try {
+      const result = await new Promise((resolve, reject) => {
+
+        this.onAddPermission(() => {
+          resolve(successResponse)
+        })
+        this.onAddPermissionFailure(error => {
+          resolve({ success: false, ...error })
+        })
+
+        googleFit.requestPermission(scope)
+      })
+      return result
+    } catch (error) {
+      return { success: false, ...error}
+    }
+  }
+
   checkIsAuthorized = async () => {
     const { isAuthorized } = await googleFit.isAuthorized()
     this.isAuthorized = isAuthorized
@@ -478,6 +502,22 @@ class RNGoogleFit {
       authorized => callback(authorized)
     )
     this.eventListeners.push(authFailedObserver)
+  }
+
+  onAddPermission = callback => {
+    const addPermissionObserver = DeviceEventEmitter.addListener(
+      'GoogleFitAddPermissionSuccess',
+      authorized => callback(authorized)
+    )
+    this.eventListeners.push(addPermissionObserver)
+  }
+
+  onAddPermissionFailure = callback => {
+    const addPermissionFailedObserver = DeviceEventEmitter.addListener(
+      'GoogleFitAddPermissionFailure',
+      authorized => callback(authorized)
+    )
+    this.eventListeners.push(addPermissionFailedObserver)
   }
 
   unsubscribeListeners = () => {

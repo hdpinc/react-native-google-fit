@@ -99,6 +99,16 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     }
 
     @ReactMethod
+    public void hasPermission(String scope, Promise promise) {
+        promise.resolve(mGoogleFitManager.hasPermission(scope));
+    }
+
+    @ReactMethod
+    public void requestPermission(String scope, Promise promise) {
+        mGoogleFitManager.requestPermission(scope);
+    }
+
+    @ReactMethod
     public void isAuthorized (final Promise promise) {
         boolean isAuthorized = false;
         if (mGoogleFitManager != null && mGoogleFitManager.isAuthorized() ) {
