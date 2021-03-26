@@ -21,6 +21,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
@@ -36,8 +38,9 @@ import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.fitness.Fitness;
+import com.google.android.gms.fitness.FitnessOptions;
 import com.google.android.gms.auth.api.signin.*;
-
+import com.google.android.gms.fitness.data.DataType;
 
 public class GoogleFitManager implements
         ActivityEventListener {
@@ -63,6 +66,7 @@ public class GoogleFitManager implements
     private ActivityHistory activityHistory;
     private HydrationHistory hydrationHistory;
     private SleepHistory sleepHistory;
+    private Map<String, DataType> dataTypes;
 
     private static final String TAG = "RNGoogleFit";
 
@@ -87,6 +91,11 @@ public class GoogleFitManager implements
         this.hydrationHistory = new HydrationHistory(mReactContext, this);
         this.sleepHistory = new SleepHistory(mReactContext, this);
         //        this.stepSensor = new StepSensor(mReactContext, activity);
+
+        // DataTypeが文字列から生成できないのでnameをkeyにマップを作って変換します。
+        this.dataTypes = new HashMap();
+        dataTypes.put("com.google.sleep.segment", DataType.TYPE_SLEEP_SEGMENT);
+        dataTypes.put("com.google.heart_rate.bpm", DataType.TYPE_HEART_RATE_BPM);
     }
 
     public GoogleApiClient getGoogleApiClient() {
@@ -205,14 +214,22 @@ public class GoogleFitManager implements
         mApiClient.connect();
     }
 
-    public boolean hasPermission(String userScope) {
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this.mReactContext);
-        return GoogleSignIn.hasPermissions(account,new Scope(userScope));
+    public boolean hasPermission(ArrayList<String> userScopes) {
+        FitnessOptions.Builder builder = FitnessOptions.builder();
+        for (String scopeName : userScopes) {
+            builder.addDataType(dataTypes.get(scopeName));
+        }
+        FitnessOptions fitnessOptions = builder.build();
+        return GoogleSignIn.hasPermissions(GoogleSignIn.getLastSignedInAccount(mReactContext),fitnessOptions);
     }
 
-    public void requestPermission(String userScope) {
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this.mReactContext);
-        GoogleSignIn.requestPermissions(mActivity, REQUEST_ADD_PERMISSION, account, new Scope(userScope));
+    public void requestPermission(ArrayList<String> userScopes) {
+        FitnessOptions.Builder builder = FitnessOptions.builder();
+        for (String scopeName : userScopes) {
+            builder.addDataType(dataTypes.get(scopeName));
+        }
+        FitnessOptions fitnessOptions = builder.build();
+        GoogleSignIn.requestPermissions(mActivity, REQUEST_ADD_PERMISSION, GoogleSignIn.getLastSignedInAccount(mReactContext), fitnessOptions);
         // この後同意ダイアログが表示されるユーザーの操作結果はonActivityResultでハンドリングする
     }
 

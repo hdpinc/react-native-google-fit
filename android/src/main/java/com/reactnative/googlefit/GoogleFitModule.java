@@ -99,13 +99,21 @@ public class GoogleFitModule extends ReactContextBaseJavaModule implements Lifec
     }
 
     @ReactMethod
-    public void hasPermission(String scope, Promise promise) {
-        promise.resolve(mGoogleFitManager.hasPermission(scope));
+    public void hasPermission(ReadableArray scopes, Promise promise) {
+        ArrayList<String> scopesList = new ArrayList<String>();
+        for (Object type : scopes.toArrayList()) {
+            scopesList.add(type.toString());
+        }
+        promise.resolve(mGoogleFitManager.hasPermission(scopesList));
     }
 
     @ReactMethod
-    public void requestPermission(String scope, Promise promise) {
-        mGoogleFitManager.requestPermission(scope);
+    public void requestPermission(ReadableArray scopes, Promise promise) {
+        ArrayList<String> scopesList = new ArrayList<String>();
+        for (Object type : scopes.toArrayList()) {
+            scopesList.add(type.toString());
+        }
+       mGoogleFitManager.requestPermission(scopesList);
     }
 
     @ReactMethod
