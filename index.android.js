@@ -3,6 +3,7 @@ import { DeviceEventEmitter, NativeModules, PermissionsAndroid } from 'react-nat
 import moment from 'moment';
 
 import PossibleScopes from './src/scopes';
+import fitnessDataType from './src/dataTypes';
 import {
   buildDailySteps,
   isNil,
@@ -642,6 +643,9 @@ export default new RNGoogleFit()
 
 // Possible Scopes
 export const Scopes = Object.freeze(PossibleScopes)
+
+// Possible DataTypes
+export const DataTypes = Object.freeze(fitnessDataType)
 
 //Data types for food addition
 export const MealType = Object.freeze({
