@@ -7,7 +7,9 @@ export function buildDailySteps(steps) {
       continue
     }
 
-    const dateFormatted = getFormattedDate(new Date(step.endDate))
+    // 日付を跨いだセッションデータがある場合endDateには次の日の０時０分０秒が入るので
+    // startDateを基準に同じ日付の値を合計する
+    const dateFormatted = getFormattedDate(new Date(step.startDate))
 
     if (!(dateFormatted in results)) {
       results[dateFormatted] = 0
@@ -18,7 +20,7 @@ export function buildDailySteps(steps) {
 
   const dateMap = []
   for (const index in results) {
-    //PepUp use startDate key
+    // PepUp use startDate key
     dateMap.push({startDate: index, value: results[index]})
   }
   return dateMap

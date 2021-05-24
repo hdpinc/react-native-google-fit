@@ -279,16 +279,12 @@ public class StepHistory {
             Log.i(TAG, "\t\tType : " + dp.getDataType().getName());
             Log.i(TAG, "\t\tStart: " + dateFormat.format(dp.getStartTime(TimeUnit.MILLISECONDS)));
             Log.i(TAG, "\t\tEnd  : " + dateFormat.format(dp.getEndTime(TimeUnit.MILLISECONDS)));
+            Log.i(TAG, "\t\tValue: " + dp.getValue(Field.FIELD_STEPS));
 
-            for(Field field : dp.getDataType().getFields()) {
-                Log.i(TAG, "\t\tField: " + field.getName() +
-                        " Value: " + dp.getValue(field));
-
-                stepMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
-                stepMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
-                stepMap.putDouble("steps", dp.getValue(field).asInt());
-                map.pushMap(stepMap);
-            }
+            stepMap.putDouble("startDate", dp.getStartTime(TimeUnit.MILLISECONDS));
+            stepMap.putDouble("endDate", dp.getEndTime(TimeUnit.MILLISECONDS));
+            stepMap.putDouble("steps", dp.getValue(Field.FIELD_STEPS).asInt());
+            map.pushMap(stepMap);
         }
     }
 
