@@ -172,11 +172,19 @@ declare module 'react-native-google-fit' {
 
     unsubscribeListeners: () => void
 
+    hasPermission: (dataTypes: DataTypes[]) => Promise<boolean>
+
+    requestPermission: (dataTypes: DataTypes[]) => Promise<AuthorizeResponse>
   }
 
   export type Day = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 
   export type BucketUnit = "NANOSECOND" | "MICROSECOND" | "MILLISECOND" | "SECOND" | "MINUTE" | "HOUR" | "DAY";
+
+  export enum DataTypes {
+    TYPE_SLEEP_SEGMENT = "com.google.sleep.segment",
+    TYPE_HEART_RATE_BPM = "com.google.heart_rate.bpm"
+  }
 
   export type WeightResponse = {
     addedBy: string
